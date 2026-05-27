@@ -1,0 +1,73 @@
+openapi: "3.0.3"
+info:
+  title: Rosadisk Agent API
+  description: API service for Rosadisk Agent
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /_health:
+    get:
+      summary: Health check endpoint
+      operationId: GetHealth
+      tags:
+        - health
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /openapi.json:
+    get:
+      summary: Get OpenAPI specification in JSON format
+      operationId: GetOpenAPIJSON
+      tags:
+        - docs
+      responses:
+        "200":
+          description: OpenAPI specification
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /openapi.yaml:
+    get:
+      summary: Get OpenAPI specification in YAML format
+      operationId: GetOpenAPIYAML
+      tags:
+        - docs
+      responses:
+        "200":
+          description: OpenAPI specification
+          content:
+            text/yaml:
+              schema:
+                type: string
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-05-27T00:00:00Z"
