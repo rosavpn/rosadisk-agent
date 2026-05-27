@@ -1,6 +1,7 @@
 package server
 
 import (
+	_ "embed"
 	"net/http"
 	"time"
 
@@ -8,6 +9,9 @@ import (
 	"rosadisk-agent/api"
 	"rosadisk-agent/api/gen"
 )
+
+//go:embed docs.html
+var docsHTML []byte
 
 type Server struct {
 	Echo *echo.Echo
@@ -18,6 +22,7 @@ func NewServer() *Server {
 	s := &Server{Echo: e}
 
 	gen.RegisterHandlers(e, s)
+	e.GET("/docs", s.GetDocs)
 
 	return s
 }
@@ -44,4 +49,8 @@ func (s *Server) GetOpenAPIJSON(ctx echo.Context) error {
 
 func (s *Server) GetOpenAPIYAML(ctx echo.Context) error {
 	return ctx.Blob(http.StatusOK, "text/yaml", api.OpenAPIYAML)
+}
+
+func (s *Server) GetDocs(ctx echo.Context) error {
+	return ctx.HTML(http.StatusOK, string(docsHTML))
 }
