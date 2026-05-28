@@ -18,9 +18,9 @@ jobs:
 
       - run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
+      - run: echo "$HOME/go/bin" >> $GITHUB_PATH
+
       - uses: pre-commit/action@v3.0.1
-        env:
-          PATH: ${{ env.PATH }}:~/go/bin
 
   test:
     name: Run tests
