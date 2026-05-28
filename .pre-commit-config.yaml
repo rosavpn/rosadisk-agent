@@ -1,0 +1,45 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: go fmt
+        entry: go fmt ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-mod-tidy
+        name: go mod tidy
+        entry: go mod tidy
+        language: system
+        pass_filenames: false
+        files: \.go$|go\.(mod|sum)$
+
+      - id: golangci-lint
+        name: golangci-lint
+        entry: bash -c 'export PATH=$PATH:~/go/bin && golangci-lint run'
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: openapi-validate
+        name: validate openapi spec
+        entry: bash -c 'go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest -package gen -generate types,spec -o /dev/null api/openapi.yaml'
+        language: system
+        files: api/openapi\.yaml
+        pass_filenames: false
+
+      - id: check-generated
+        name: check generated code is up-to-date
+        entry: bash -c 'go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest -package gen -generate types,server,spec -o api/gen/server.gen.go api/openapi.yaml && git diff --exit-code api/gen/'
+        language: system
+        files: api/openapi\.yaml
+        pass_filenames: false
