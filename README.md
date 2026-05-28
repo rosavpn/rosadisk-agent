@@ -43,6 +43,21 @@ make generate
 
 This runs `oapi-codegen` to regenerate types and server interface from `api/openapi.yaml`.
 
+## CI Pipeline
+
+This project uses GitHub Actions for continuous integration. The pipeline runs on every pull request and push to `main`.
+
+### Pipeline Jobs
+
+| Job | Description |
+|-----|-------------|
+| Lint | Runs golangci-lint for code quality checks |
+| Test & Coverage | Runs unit tests with race detection and coverage threshold (50%) |
+| Build | Builds the binary using `make build` |
+| Security | Runs Gosec and Trivy for vulnerability scanning |
+| Validate OpenAPI | Validates the OpenAPI specification |
+| Docs | Verifies generated code is up to date |
+
 ## Project Structure
 
 ```
