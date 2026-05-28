@@ -8,6 +8,7 @@ API service for Rosadisk Agent, following OpenAPI 3 specification.
 
 - Go 1.21+
 - Make
+- oapi-codegen: `go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen`
 
 ### Build
 
