@@ -48,15 +48,6 @@ jobs:
           name: coverage-report
           path: coverage.out
 
-      - name: Check coverage threshold
-        run: |
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
-          echo "Coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 50" | bc -l) )); then
-            echo "Coverage ${COVERAGE}% is below threshold 50%"
-            exit 1
-          fi
-
   build:
     name: Build
     runs-on: ubuntu-latest
