@@ -117,10 +117,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate OpenAPI spec
-        uses: openapi-contrib/openapi-mock-server/action@main
+      - uses: actions/setup-node@v4
         with:
-          spec-file: api/openapi.yaml
+          node-version: "20"
+
+      - name: Validate OpenAPI spec
+        run: npx @redocly/cli lint api/openapi.yaml
 
   docs:
     name: Docs Check
