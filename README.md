@@ -9,6 +9,7 @@ API service for Rosadisk Agent, following OpenAPI 3 specification.
 - Go 1.21+
 - Make
 - oapi-codegen: `go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen`
+- pre-commit: `pip install pre-commit`
 
 ### Build
 
@@ -34,6 +35,14 @@ The server starts on `:8080` by default.
 | `/docs` | GET | Swagger UI |
 
 ## Development
+
+### Install pre-commit hooks
+
+```bash
+pre-commit install
+```
+
+Hooks run automatically on `git commit` to enforce formatting, linting, spec validation, and generated code consistency.
 
 ### Regenerate code from OpenAPI spec
 

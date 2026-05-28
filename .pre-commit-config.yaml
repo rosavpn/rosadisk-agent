@@ -1,0 +1,35 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+      - id: go-imports
+      - id: go-mod-tidy
+
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.57.2
+    hooks:
+      - id: golangci-lint
+
+  - repo: https://github.com/python-openapi/openapi-spec-validator
+    rev: 0.6.0
+    hooks:
+      - id: openapi-spec-validator
+        args: ["api/openapi.yaml"]
+
+  - repo: local
+    hooks:
+      - id: check-generated
+        name: check generated code is up-to-date
+        entry: bash -c 'make generate && git diff --exit-code api/gen/'
+        language: system
+        files: api/openapi\.yaml
+        pass_filenames: false
