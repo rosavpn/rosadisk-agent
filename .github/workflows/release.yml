@@ -30,10 +30,32 @@ jobs:
             -o rosadisk-agent-${{ matrix.goos }}-${{ matrix.goarch }} \
             cmd/server/main.go
 
+      - name: Build DEB package
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          ARCH=${{ matrix.goarch }}
+          PKG_DIR=rosadisk-agent_${VERSION}_linux_${ARCH}
+
+          mkdir -p ${PKG_DIR}/DEBIAN
+          mkdir -p ${PKG_DIR}/usr/bin
+          mkdir -p ${PKG_DIR}/lib/systemd/system
+
+          sed -e "s/{{VERSION}}/${VERSION}/g" -e "s/{{ARCH}}/${ARCH}/g" .github/deb/control > ${PKG_DIR}/DEBIAN/control
+
+          cp rosadisk-agent-${{ matrix.goos }}-${{ matrix.goarch }} ${PKG_DIR}/usr/bin/rosadisk-agent
+          cp .github/deb/rosadisk-agent.service ${PKG_DIR}/lib/systemd/system/rosadisk-agent.service
+          cp .github/deb/postinst ${PKG_DIR}/DEBIAN/postinst
+          cp .github/deb/postrm ${PKG_DIR}/DEBIAN/postrm
+          chmod 755 ${PKG_DIR}/DEBIAN/postinst ${PKG_DIR}/DEBIAN/postrm
+
+          dpkg-deb --build ${PKG_DIR}
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: rosadisk-agent-${{ matrix.goos }}-${{ matrix.goarch }}
+          files: |
+            rosadisk-agent-${{ matrix.goos }}-${{ matrix.goarch }}
+            rosadisk-agent_*.deb
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
