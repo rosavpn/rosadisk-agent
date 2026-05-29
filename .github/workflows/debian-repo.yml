@@ -1,0 +1,78 @@
+name: Debian Repository
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-repo:
+    name: Build Debian Repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev gpg
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p deb-packages
+          gh release download ${{ github.ref_name }} \
+            --pattern "*.deb" \
+            --dir deb-packages \
+            --clobber
+
+      - name: Import GPG key
+        env:
+          DEB_GPG_KEY: ${{ secrets.DEB_GPG_KEY }}
+        run: |
+          echo "$DEB_GPG_KEY" | gpg --import --batch
+          echo "GPG key imported successfully"
+
+      - name: Get GPG key ID
+        id: gpg-key
+        run: |
+          KEY_ID=$(gpg --list-keys --with-colons | grep '^pub' | cut -d':' -f5 | head -1)
+          echo "key_id=${KEY_ID}" >> $GITHUB_OUTPUT
+          echo "GPG Key ID: ${KEY_ID}"
+
+      - name: Build repository structure
+        run: |
+          chmod +x scripts/build-debian-repo.sh
+          ./scripts/build-debian-repo.sh deb-packages debian-repo ${{ steps.gpg-key.outputs.key_id }}
+
+      - name: Export public key
+        run: |
+          KEY_ID=${{ steps.gpg-key.outputs.key_id }}
+          gpg --armor --export "$KEY_ID" > debian-repo/key.gpg
+          echo "Public key exported to debian-repo/key.gpg"
+
+      - name: Upload repository artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: debian-repo
+
+  deploy-repo:
+    name: Deploy to GitHub Pages
+    needs: build-repo
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

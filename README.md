@@ -2,6 +2,28 @@
 
 API service for Rosadisk Agent, following OpenAPI 3 specification.
 
+## Installation
+
+### Debian/Ubuntu (Recommended)
+
+Add the rosadisk-agent repository to your system:
+
+```bash
+# Import GPG key
+wget -qO- https://rosadisk.github.io/rosadisk-agent/key.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/rosadisk-agent.gpg
+
+# Add repository
+echo "deb https://rosadisk.github.io/rosadisk-agent/ trixie main" | sudo tee /etc/apt/sources.list.d/rosadisk-agent.list
+
+# Install
+sudo apt update
+sudo apt install rosadisk-agent
+```
+
+### From Source
+
+See [Development](#development) section below.
+
 ## Getting Started
 
 ### Prerequisites
@@ -51,6 +73,28 @@ make generate
 ```
 
 This runs `oapi-codegen` to regenerate types and server interface from `api/openapi.yaml`.
+
+### Build Debian Repository (Local Testing)
+
+```bash
+make deb-repo
+```
+
+This builds a local Debian repository structure for testing. Requires `dpkg-dev` and GPG key setup.
+
+### GitHub Secrets for Debian Repository
+
+The following secrets must be configured in GitHub for the Debian repository workflow:
+
+| Secret | Description |
+|--------|-------------|
+| `DEB_GPG_KEY` | GPG private key (ASCII armored) for signing the repository |
+| `DEB_GPG_KEY_ID` | GPG key ID (fingerprint) |
+
+To export your GPG key for the secret:
+```bash
+gpg --armor --export-secret-key rosa-agent@noreply.github.com
+```
 
 ## Project Structure
 
