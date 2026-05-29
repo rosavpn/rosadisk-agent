@@ -1,0 +1,8 @@
+Package: rosadisk-agent
+Version: {{VERSION}}
+Section: net
+Priority: optional
+Architecture: {{ARCH}}
+Maintainer: Rosadisk Team
+Description: Rosadisk Agent API Service
+ API service for Rosadisk Agent, following OpenAPI 3 specification.
