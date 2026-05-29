@@ -1,6 +1,6 @@
 module rosadisk-agent
 
-go 1.26.3
+go 1.25.0
 
 require (
 	github.com/getkin/kin-openapi v0.139.0
