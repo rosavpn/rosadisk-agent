@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.0...v0.4.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* correct glob pattern for deb package matching ([a8d731f](https://github.com/rosavpn/rosadisk-agent/commit/a8d731f6d4b312aad2a0be097a10ade2dff7f0cf))
+* correct working directory for dpkg-scanpackages ([44544f9](https://github.com/rosavpn/rosadisk-agent/commit/44544f9ae87bc71a992af7aae1a69c5b257d31d0))
+* correct working directory for dpkg-scanpackages ([867931f](https://github.com/rosavpn/rosadisk-agent/commit/867931f780e985bfd71972d2a79a5d3341659ad8))
+
 ## [0.4.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.3.0...v0.4.0) (2026-05-29)
 
 
