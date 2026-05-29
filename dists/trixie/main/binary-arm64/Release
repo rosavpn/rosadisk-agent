@@ -1,0 +1,7 @@
+Archive: trixie
+Origin: rosadisk-agent
+Label: rosadisk-agent
+Codename: trixie
+Architectures: arm64
+Components: main
+Description: Rosadisk Agent Debian Repository
