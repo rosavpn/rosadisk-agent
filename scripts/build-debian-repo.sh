@@ -38,7 +38,7 @@ for arch in amd64 arm64; do
     # Create Packages file
     > "${ARCH_DIR}/Packages"
 
-    for deb in "pool/main/"/*_${arch}.deb; do
+    for deb in pool/main/*_${arch}.deb; do
         if [ -f "$deb" ]; then
             echo "  Adding: $(basename "$deb")"
             dpkg-scanpackages --arch "${arch}" pool/main > "${ARCH_DIR}/Packages"
