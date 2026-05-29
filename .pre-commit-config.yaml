@@ -23,10 +23,16 @@ repos:
         pass_filenames: false
         files: \.go$|go\.(mod|sum)$
 
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v2.12.2
+  - repo: local
     hooks:
       - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run
+        language: golang
+        types: [go]
+        pass_filenames: false
+        additional_dependencies:
+          - github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
   - repo: local
     hooks:
