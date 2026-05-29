@@ -5,17 +5,15 @@ on:
     types: [published]
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  build-repo:
-    name: Build Debian Repository
+  build-and-deploy:
+    name: Build and Deploy Debian Repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,19 +58,10 @@ jobs:
           gpg --armor --export "$KEY_ID" > debian-repo/key.gpg
           echo "Public key exported to debian-repo/key.gpg"
 
-      - name: Upload repository artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: debian-repo
-
-  deploy-repo:
-    name: Deploy to GitHub Pages
-    needs: build-repo
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./debian-repo
+          publish_branch: gh-pages
+          keep_files: true
