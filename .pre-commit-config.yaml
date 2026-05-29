@@ -23,13 +23,13 @@ repos:
         pass_filenames: false
         files: \.go$|go\.(mod|sum)$
 
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.6.2
+    hooks:
       - id: golangci-lint
-        name: golangci-lint
-        entry: bash -c 'export PATH=$PATH:~/go/bin && golangci-lint run'
-        language: system
-        types: [go]
-        pass_filenames: false
 
+  - repo: local
+    hooks:
       - id: openapi-validate
         name: validate openapi spec
         entry: bash -c 'go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest -package gen -generate types,spec -o /dev/null api/openapi.yaml'
