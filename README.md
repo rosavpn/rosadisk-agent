@@ -10,14 +10,10 @@ Add the rosadisk-agent repository to your system:
 
 ```bash
 # Import GPG key
-wget -qO- https://rosadisk.github.io/rosadisk-agent/key.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/rosadisk-agent.gpg
+wget -qO- https://rosavpn.github.io/rosadisk-agent/key.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/rosadisk-agent.gpg
 
 # Add repository
-echo "deb https://rosadisk.github.io/rosadisk-agent/ trixie main" | sudo tee /etc/apt/sources.list.d/rosadisk-agent.list
-
-# Install
-sudo apt update
-sudo apt install rosadisk-agent
+echo "deb https://rosavpn.github.io/rosadisk-agent/ trixie main" | sudo tee /etc/apt/sources.list.d/rosadisk-agent.list
 ```
 
 ### From Source
