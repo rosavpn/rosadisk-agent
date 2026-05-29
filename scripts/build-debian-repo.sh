@@ -26,16 +26,19 @@ for deb in "${DEB_PACKAGES_DIR}"/*.deb; do
     fi
 done
 
+# Change to output directory for dpkg-scanpackages
+cd "${OUTPUT_DIR}"
+
 # Process each architecture
 for arch in amd64 arm64; do
     echo "Processing ${arch}..."
 
-    ARCH_DIR="${OUTPUT_DIR}/dists/trixie/main/binary-${arch}"
+    ARCH_DIR="dists/trixie/main/binary-${arch}"
 
     # Create Packages file
     > "${ARCH_DIR}/Packages"
 
-    for deb in "${OUTPUT_DIR}/pool/main/"/*_${arch}.deb; do
+    for deb in "pool/main/"/*_${arch}.deb; do
         if [ -f "$deb" ]; then
             echo "  Adding: $(basename "$deb")"
             dpkg-scanpackages --arch "${arch}" pool/main > "${ARCH_DIR}/Packages"
@@ -59,7 +62,7 @@ EOF
 done
 
 # Create main Release file
-cat > "${OUTPUT_DIR}/dists/trixie/Release" <<EOF
+cat > "dists/trixie/Release" <<EOF
 Origin: rosadisk-agent
 Label: rosadisk-agent
 Suite: trixie
@@ -71,7 +74,6 @@ Date: $(date -Ru)
 EOF
 
 # Add checksums to Release file
-cd "${OUTPUT_DIR}"
 for arch in amd64 arm64; do
     MD5=$(md5sum "dists/trixie/main/binary-${arch}/Packages" | awk '{print $1}')
     SHA1=$(sha1sum "dists/trixie/main/binary-${arch}/Packages" | awk '{print $1}')
