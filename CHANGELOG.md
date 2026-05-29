@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.3.0...v0.4.0) (2026-05-29)
+
+
+### Features
+
+* add Debian repository support for GitHub Pages ([30c03af](https://github.com/rosavpn/rosadisk-agent/commit/30c03afd4a2c657a5a3cd16f5e9f38d74eb8dcca))
+* add Debian repository support for GitHub Pages ([3be466d](https://github.com/rosavpn/rosadisk-agent/commit/3be466d2197ac45bfe2f98aec3e3d8d2a02ec9c6))
+
 ## [0.3.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.2.0...v0.3.0) (2026-05-29)
 
 
