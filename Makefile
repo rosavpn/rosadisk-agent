@@ -1,4 +1,4 @@
-.PHONY: generate run build clean
+.PHONY: generate run build clean deb-repo
 
 generate:
 	@echo "Generating code from OpenAPI spec..."
@@ -19,3 +19,12 @@ build: generate
 clean:
 	@rm -rf bin/
 	@rm -f api/gen/*.go
+	@rm -rf debian-repo/
+	@rm -rf deb-packages/
+
+deb-repo:
+	@echo "Building Debian repository..."
+	@mkdir -p deb-packages
+	@echo "Place .deb packages in deb-packages/ directory"
+	@chmod +x scripts/build-debian-repo.sh
+	@./scripts/build-debian-repo.sh deb-packages debian-repo
