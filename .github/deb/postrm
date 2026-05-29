@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
+    systemctl stop rosadisk-agent || true
+    systemctl disable rosadisk-agent || true
+fi
+
+if [ "$1" = "purge" ]; then
+    systemctl daemon-reload
+fi
