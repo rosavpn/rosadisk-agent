@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.1...v0.4.2) (2026-05-29)
+
+
+### Bug Fixes
+
+* use direct gh-pages push to bypass environment restrictions ([d4626e8](https://github.com/rosavpn/rosadisk-agent/commit/d4626e8809115499ae230c09e78055fe7b89cf4a))
+* use direct gh-pages push to bypass environment restrictions ([0e10045](https://github.com/rosavpn/rosadisk-agent/commit/0e100451680bf0461001356ce6e4683a2335ebcc))
+
 ## [0.4.1](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.0...v0.4.1) (2026-05-29)
 
 
