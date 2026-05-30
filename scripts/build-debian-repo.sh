@@ -73,22 +73,29 @@ Description: Rosadisk Agent Debian Repository
 Date: $(date -Ru)
 EOF
 
-# Add checksums to Release file
-for arch in amd64 arm64; do
-    MD5=$(md5sum "dists/trixie/main/binary-${arch}/Packages" | awk '{print $1}')
-    SHA1=$(sha1sum "dists/trixie/main/binary-${arch}/Packages" | awk '{print $1}')
-    SHA256=$(sha256sum "dists/trixie/main/binary-${arch}/Packages" | awk '{print $1}')
-    SIZE=$(stat -c%s "dists/trixie/main/binary-${arch}/Packages")
+# Collect checksums
+MD5_LINES=""
+SHA1_LINES=""
+SHA256_LINES=""
 
-    cat >> "dists/trixie/Release" <<EOF
-MD5Sum:
- ${MD5} ${SIZE} main/binary-${arch}/Packages
-SHA1:
- ${SHA1} ${SIZE} main/binary-${arch}/Packages
-SHA256:
- ${SHA256} ${SIZE} main/binary-${arch}/Packages
-EOF
+for arch in amd64 arm64; do
+    PKG_FILE="dists/trixie/main/binary-${arch}/Packages"
+    if [ -f "$PKG_FILE" ]; then
+        MD5=$(md5sum "$PKG_FILE" | awk '{print $1}')
+        SHA1=$(sha1sum "$PKG_FILE" | awk '{print $1}')
+        SHA256=$(sha256sum "$PKG_FILE" | awk '{print $1}')
+        SIZE=$(stat -c%s "$PKG_FILE")
+        
+        MD5_LINES="${MD5_LINES} ${MD5} ${SIZE} main/binary-${arch}/Packages\n"
+        SHA1_LINES="${SHA1_LINES} ${SHA1} ${SIZE} main/binary-${arch}/Packages\n"
+        SHA256_LINES="${SHA256_LINES} ${SHA256} ${SIZE} main/binary-${arch}/Packages\n"
+    fi
 done
+
+# Append checksums in proper format
+printf "MD5Sum:\n%s" "${MD5_LINES}" >> "dists/trixie/Release"
+printf "SHA1:\n%s" "${SHA1_LINES}" >> "dists/trixie/Release"
+printf "SHA256:\n%s" "${SHA256_LINES}" >> "dists/trixie/Release"
 
 # Sign the Release file if GPG key is provided
 if [ -n "$GPG_KEY_ID" ]; then
