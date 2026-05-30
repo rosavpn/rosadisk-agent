@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.3](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.2...v0.4.3) (2026-05-30)
+
+
+### Bug Fixes
+
+* generate proper Release file checksum format ([f923772](https://github.com/rosavpn/rosadisk-agent/commit/f9237723408c1ca96797253a22b30537c48d46ba))
+* generate proper Release file checksum format ([1431bf8](https://github.com/rosavpn/rosadisk-agent/commit/1431bf82d272419e57c887257f18ec906e2467b2))
+* trailing space ([9e48f3e](https://github.com/rosavpn/rosadisk-agent/commit/9e48f3ef185d83d0bb16d05ae7af8f4040e291bf))
+
 ## [0.4.2](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.1...v0.4.2) (2026-05-29)
 
 
