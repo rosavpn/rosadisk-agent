@@ -8,23 +8,15 @@ Codename: trixie
 Architectures: amd64 arm64
 Components: main
 Description: Rosadisk Agent Debian Repository
-Date: Fri, 29 May 2026 23:46:50 +0000
+Date: Sat, 30 May 2026 00:19:31 +0000
 MD5Sum:
- 0df2cbcd72cde8dfb0f00417a3bdf2ef 475 main/binary-amd64/Packages
-SHA1:
- 76ab7781c69022a8d823cd1ffe89fdff9672d32e 475 main/binary-amd64/Packages
-SHA256:
- 96d43fa4ddd3311f628d9e23c045369169f7769af6423005ba222270212f68d5 475 main/binary-amd64/Packages
-MD5Sum:
- e16252f0bc2fd18438683fe0aa449d8c 475 main/binary-arm64/Packages
-SHA1:
- b008abcb655be0b54f21d665ea76fbe6fe439ce4 475 main/binary-arm64/Packages
-SHA256:
- e6ed8fda95a4d16b34d97da2311fcc766ccb7093e5bc62c5d3fbb77d54254ade 475 main/binary-arm64/Packages
+ f4df9727ad18c613a19d56d987782dbc 475 main/binary-amd64/Packages\n c5ffebcaf61266f7f6a0b06c07c3dddb 475 main/binary-arm64/Packages\nSHA1:
+ ffc9c0a8d9ff2a738fa8ad4281179611ab920002 475 main/binary-amd64/Packages\n f6e311ab0451dda2bea4bb73ece3466d25f45f88 475 main/binary-arm64/Packages\nSHA256:
+ 27d10a623de7e1a4020f20cb014523914fbe8622f0cfef044711575812ef244b 475 main/binary-amd64/Packages\n 034dff561052a7f3dc8b96680a027e12ca05dc50e649eb3f4a718315f4884b56 475 main/binary-arm64/Packages\n
 -----BEGIN PGP SIGNATURE-----
 
-iHUEARYKAB0WIQT/znbwjDFk9FX0zOlP4sICEJbVUQUCaholagAKCRBP4sICEJbV
-URoDAP958bX7NlBeFo/BtJ/xLnsc0HFJfFiqnWtU2OYcedgsxwD/dEGFSKwRrcV8
-qieTDqluhK6eZfKc+FFhoYCkOIuRVgE=
-=jvo6
+iHUEARYKAB0WIQT/znbwjDFk9FX0zOlP4sICEJbVUQUCahotEwAKCRBP4sICEJbV
+UXzSAP4ygvH4dntBsBDosPW5Oa69RLlTVrOrSuld2qnPv36vcQEA9dr2aZD0OC6e
+F1+whjG/BonhpKMLupkIRfL4lMMtfgo=
+=sxA7
 -----END PGP SIGNATURE-----

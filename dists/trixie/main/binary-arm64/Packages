@@ -1,13 +1,13 @@
 Package: rosadisk-agent
-Version: 0.4.2
+Version: 0.4.3
 Architecture: arm64
 Maintainer: Rosadisk Team
 Depends: systemd
-Filename: pool/main/rosadisk-agent_0.4.2_linux_arm64.deb
-Size: 5141660
-MD5sum: 38ea5db9fe8e030d0db596f1c3b73cad
-SHA1: 3940bd823183f191c6606f1c748e76ab7fdc5390
-SHA256: 5a521b9bdb1b382c971a735d6c827d09a07315aa17bf85d98e24a4f5fe6af289
+Filename: pool/main/rosadisk-agent_0.4.3_linux_arm64.deb
+Size: 5141658
+MD5sum: da78621d95d6a8189728ade95918cddf
+SHA1: e9ac88ff2702003ce78bf6befef78abf1f02bf61
+SHA256: b95cbf41d7f01f06810944134dc9a6baa7d7b6eb7a34ae283ac0d0269280b2da
 Section: net
 Priority: optional
 Description: Rosadisk Agent API Service
