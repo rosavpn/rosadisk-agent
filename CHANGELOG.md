@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.4](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.3...v0.4.4) (2026-05-30)
+
+
+### Bug Fixes
+
+* use echo for proper newlines in Release file ([8b7f2c1](https://github.com/rosavpn/rosadisk-agent/commit/8b7f2c11f45eb66a7a19f95c283c7b7037e5688d))
+* use echo for proper newlines in Release file ([21a4f8f](https://github.com/rosavpn/rosadisk-agent/commit/21a4f8f4bba08ad49c70a2dc272ec911fa048233))
+
 ## [0.4.3](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.2...v0.4.3) (2026-05-30)
 
 
