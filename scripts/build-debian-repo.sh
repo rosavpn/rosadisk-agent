@@ -73,29 +73,36 @@ Description: Rosadisk Agent Debian Repository
 Date: $(date -Ru)
 EOF
 
-# Collect checksums
-MD5_LINES=""
-SHA1_LINES=""
-SHA256_LINES=""
-
-for arch in amd64 arm64; do
-    PKG_FILE="dists/trixie/main/binary-${arch}/Packages"
-    if [ -f "$PKG_FILE" ]; then
-        MD5=$(md5sum "$PKG_FILE" | awk '{print $1}')
-        SHA1=$(sha1sum "$PKG_FILE" | awk '{print $1}')
-        SHA256=$(sha256sum "$PKG_FILE" | awk '{print $1}')
-        SIZE=$(stat -c%s "$PKG_FILE")
-
-        MD5_LINES="${MD5_LINES} ${MD5} ${SIZE} main/binary-${arch}/Packages\n"
-        SHA1_LINES="${SHA1_LINES} ${SHA1} ${SIZE} main/binary-${arch}/Packages\n"
-        SHA256_LINES="${SHA256_LINES} ${SHA256} ${SIZE} main/binary-${arch}/Packages\n"
-    fi
-done
-
 # Append checksums in proper format
-printf "MD5Sum:\n%s" "${MD5_LINES}" >> "dists/trixie/Release"
-printf "SHA1:\n%s" "${SHA1_LINES}" >> "dists/trixie/Release"
-printf "SHA256:\n%s" "${SHA256_LINES}" >> "dists/trixie/Release"
+{
+    echo "MD5Sum:"
+    for arch in amd64 arm64; do
+        PKG_FILE="dists/trixie/main/binary-${arch}/Packages"
+        if [ -f "$PKG_FILE" ]; then
+            MD5=$(md5sum "$PKG_FILE" | awk '{print $1}')
+            SIZE=$(stat -c%s "$PKG_FILE")
+            echo " ${MD5} ${SIZE} main/binary-${arch}/Packages"
+        fi
+    done
+    echo "SHA1:"
+    for arch in amd64 arm64; do
+        PKG_FILE="dists/trixie/main/binary-${arch}/Packages"
+        if [ -f "$PKG_FILE" ]; then
+            SHA1=$(sha1sum "$PKG_FILE" | awk '{print $1}')
+            SIZE=$(stat -c%s "$PKG_FILE")
+            echo " ${SHA1} ${SIZE} main/binary-${arch}/Packages"
+        fi
+    done
+    echo "SHA256:"
+    for arch in amd64 arm64; do
+        PKG_FILE="dists/trixie/main/binary-${arch}/Packages"
+        if [ -f "$PKG_FILE" ]; then
+            SHA256=$(sha256sum "$PKG_FILE" | awk '{print $1}')
+            SIZE=$(stat -c%s "$PKG_FILE")
+            echo " ${SHA256} ${SIZE} main/binary-${arch}/Packages"
+        fi
+    done
+} >> "dists/trixie/Release"
 
 # Sign the Release file if GPG key is provided
 if [ -n "$GPG_KEY_ID" ]; then
