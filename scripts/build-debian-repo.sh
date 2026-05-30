@@ -85,7 +85,7 @@ for arch in amd64 arm64; do
         SHA1=$(sha1sum "$PKG_FILE" | awk '{print $1}')
         SHA256=$(sha256sum "$PKG_FILE" | awk '{print $1}')
         SIZE=$(stat -c%s "$PKG_FILE")
-        
+
         MD5_LINES="${MD5_LINES} ${MD5} ${SIZE} main/binary-${arch}/Packages\n"
         SHA1_LINES="${SHA1_LINES} ${SHA1} ${SIZE} main/binary-${arch}/Packages\n"
         SHA256_LINES="${SHA256_LINES} ${SHA256} ${SIZE} main/binary-${arch}/Packages\n"
