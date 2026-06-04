@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.4...v0.5.0) (2026-06-04)
+
+
+### Features
+
+* add .opencode/ to .gitignore ([0bf64e4](https://github.com/rosavpn/rosadisk-agent/commit/0bf64e42cec6b115da0c4b71f9b813e6b48eceeb))
+* add opencode agentic development configuration ([d4d8225](https://github.com/rosavpn/rosadisk-agent/commit/d4d82256806e344ebc163b0bbdd19a5a6f7c49e5))
+
+
+### Bug Fixes
+
+* update Go to 1.25.11 to patch security vulnerabilities ([febffe2](https://github.com/rosavpn/rosadisk-agent/commit/febffe222060575e7634bedded1232b422c56e58))
+
 ## [0.4.4](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.3...v0.4.4) (2026-05-30)
 
 
