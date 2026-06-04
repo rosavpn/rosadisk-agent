@@ -3,3 +3,4 @@ AGENTS.md
 bin/
 debian-repo/
 deb-packages/
+.opencode/
