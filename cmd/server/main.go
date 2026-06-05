@@ -3,14 +3,21 @@ package main
 import (
 	"log"
 
+	"go.uber.org/zap"
 	"rosadisk-agent/internal/server"
 )
 
 func main() {
-	srv := server.NewServer()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Failed to create logger: %v", err)
+	}
+	defer logger.Sync()
 
-	log.Println("Starting server on :8080")
+	srv := server.NewServer(logger)
+
+	logger.Info("starting server", zap.String("addr", ":8080"))
 	if err := srv.Start(":8080"); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		logger.Fatal("server failed", zap.Error(err))
 	}
 }
