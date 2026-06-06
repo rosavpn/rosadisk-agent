@@ -81,6 +81,8 @@ func (s *Server) handleDiskList(ctx context.Context, data interface{}) (interfac
 			Type:       d.Type,
 			FSType:     d.FSType,
 			MountPoint: d.MountPoint,
+			Vendor:     d.Vendor,
+			Model:      d.Model,
 		}
 	}
 

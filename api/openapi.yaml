@@ -131,6 +131,16 @@ components:
           nullable: true
           description: Mount point (null if not mounted)
           example: /
+        vendor:
+          type: string
+          nullable: true
+          description: Device vendor (inherited from parent if null)
+          example: ATA
+        model:
+          type: string
+          nullable: true
+          description: Device model (inherited from parent if null)
+          example: WDC WD10EZEX-08L
 
     ErrorResponse:
       type: object
