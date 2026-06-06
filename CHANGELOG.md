@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.5.0...v0.6.0) (2026-06-06)
+
+
+### Features
+
+* add disk list endpoint with event-driven architecture ([bbfb054](https://github.com/rosavpn/rosadisk-agent/commit/bbfb054391ec1ec22b58698c1618936c5d20d2e4))
+* add disk list endpoint with event-driven architecture ([0b329db](https://github.com/rosavpn/rosadisk-agent/commit/0b329dbb59a741aab72a4db773b8656593f06c04))
+
+
+### Bug Fixes
+
+* add overflow check for int64 to uint64 conversion ([08dbe20](https://github.com/rosavpn/rosadisk-agent/commit/08dbe209fa187c1b832d998c62fba42144f14deb))
+
 ## [0.5.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.4.4...v0.5.0) (2026-06-04)
 
 
