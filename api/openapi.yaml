@@ -56,6 +56,26 @@ paths:
               schema:
                 type: string
 
+  /v1/disks:
+    get:
+      summary: List available disks
+      operationId: ListDisks
+      tags:
+        - disks
+      responses:
+        "200":
+          description: List of disks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiskListResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthResponse:
@@ -71,3 +91,53 @@ components:
           type: string
           format: date-time
           example: "2026-05-27T00:00:00Z"
+
+    DiskListResponse:
+      type: object
+      required:
+        - disks
+      properties:
+        disks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Disk"
+
+    Disk:
+      type: object
+      required:
+        - name
+        - size
+        - type
+      properties:
+        name:
+          type: string
+          description: Device name (e.g., sda, sda1)
+          example: sda
+        size:
+          type: integer
+          description: Size in bytes
+          example: 500107862016
+        type:
+          type: string
+          description: Device type (disk, part, rom, etc.)
+          example: disk
+        fstype:
+          type: string
+          nullable: true
+          description: Filesystem type (null if none)
+          example: ext4
+        mountpoint:
+          type: string
+          nullable: true
+          description: Mount point (null if not mounted)
+          example: /
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: failed to list disks
