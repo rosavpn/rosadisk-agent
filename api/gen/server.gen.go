@@ -19,25 +19,19 @@ import (
 
 // Disk defines model for Disk.
 type Disk struct {
-	// Fstype Filesystem type (null if none)
-	Fstype *string `json:"fstype,omitempty"`
-
-	// Model Device model (inherited from parent if null)
+	// Model Device model
 	Model *string `json:"model,omitempty"`
 
-	// Mountpoint Mount point (null if not mounted)
-	Mountpoint *string `json:"mountpoint,omitempty"`
-
-	// Name Device name (e.g., sda, sda1)
+	// Name Device name (e.g., sda, nvme0n1)
 	Name string `json:"name"`
 
 	// Size Size in bytes
 	Size int `json:"size"`
 
-	// Type Device type (disk, part, rom, etc.)
+	// Type Device type (always "disk")
 	Type string `json:"type"`
 
-	// Vendor Device vendor (inherited from parent if null)
+	// Vendor Device vendor
 	Vendor *string `json:"vendor,omitempty"`
 }
 
@@ -174,21 +168,20 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"xFV/b9s2EP0qxG1/ZIBiyc6SBvrPmLPOQ7oGbYFuHYKBkU42G4nkyLMRt8h3H45UnMiS5wzLMCCICZF3",
-	"9967X1+hMI01GjV5yL+CL5bYyHCcKX/Lv9YZi44Uhq+Vp41FPpXoC6csKaMhhx9VjX7jCRvBD8SRXtW1",
-	"UJXQRuN3kADeycbWCDngHX0PCfADecNfyK0wgegXPDmlF3CfQGNKrPuRZrhWBYpwK46UXqJThKWonGmE",
-	"lQ41hbiruu7G/Tj7QXycjbOLTxe/Hmfnl8/DsNJkjdLUB/KG70S4fEqXRDDCshs9fU44LRvcy5gvxRGO",
-	"FqNE+FKGf+NuEF9KGHDr1ZcBt+/VFxRKi5sNoX/q5jTLxtmr87NJNj7belOacIGO3Q1XQIsyZr9U/jbh",
-	"bFAinGkSgVSMulj5yRDYNerSuL3+4/U/Svz0w/Sw+PcJOPxzpRyWkP8eM9Eq17693tqYm89YEIPlJrlU",
-	"nt6ht0Z77DcM0wwHRdiEw7cOK8jhm/Sx9dK279LQdFuJQTonNz1s0eUQnAvnjNuPBfm6r2ywEg16LxfY",
-	"Ua6SqsZSkBG18iRi4EPSxShD8H5CWdNyPz5PklYR6RaCGSwSUg16ko3tPp5kk7Pj7PR48upDluXh7xMk",
-	"UBnXSOKak4THbHuQRAvlaaQ+IzZSujJ9SadXc+HRhYqtjBPvjJesnpguUFNwSwFx90JMr+bALeB89DMe",
-	"ZaOMCRuLWloFOZyMstEJJGAlLYNW6R/LoCufFxgGFYsqGcq8hBxeI0XlgTlG8YPlJMv4pzCaME44aW2t",
-	"imCafvYM4WEnHKrcndwGbXbmTauH8iIC3jCx0+zk/8Gw0lsUPCJXTSPdBvK2SEWxxOJWoC7j9E+A5MJz",
-	"ZbRiX7NV2qZl9IBzn/5vLerp1fzn929/+bdJGKjBLsc2lvAWC1W1jnZIvkYSg+94ITBK0fbMI+/SFH6H",
-	"9UY29TNY/zZ9c3mYNeEdpQ8ee3S3bfrydBne39Jdj9PtFB+kyhtg1s7G/6zBeqtmQAu+F6ZqB3XorpcD",
-	"0F0uA9HnmtBpWYfJh07ERdDNREAo11KFXfy4UR5Uj6stOI9e+PPudL00haxFiWusjW14bsa3kMDK1ZDD",
-	"ksjmaVrzu6XxlJ9n5xncX9//FQAA//8=",
+	"xFVhb9s2EP0rxG0fOkCxaAdJA30z5qDzkK1BW6Bb12BgpLPNRiI58uzVDfzfhyNlJ7LlecA6DBAggkc+",
+	"vvd4vHuE0jbOGjQUoHiEUC6wUXE40eGB/85bh540xtnGVljzoMJQeu1IWwMFTHClSxQpmgF+Vo2rEQp4",
+	"P/levJ8M5fWH61/O5NUNZGCWda3uOUp+iRnQ2vHKQF6bOWwyMKrBo0dwULzAwXyQiVCpTJhVg9IMv+sc",
+	"GyoFPchBf+lBfqu/oNBG3K8Jw3OYCymH8uXV5UgOL3do2hDO0TNcmjlClIPihar/VOsgPkKlw8NH6LLk",
+	"uT6aKzSV9UeR2/BzpPG78WlnNxl4/GOpPVZQ/JZsbj1p197t9tj7T1gSk+E8uNGB3mBw1gQ8zAmWEQea",
+	"sImDbz3OoIBv8qfsytvUymNe7cwD5b1aH3BLkH10rr23/jgX5PChc3GXaDAENceOczOla6wEWVHrQCId",
+	"fMq6dEofvR9Q1bQ4zi+QomViuqNge5OAdIOBVOO6i0dydHkmL85GL99JWcTvA2Qws75RxDmlCM9470kR",
+	"LZXnJx0q4k3azOyhpePbqQjoY0bOrBdvbFDsnhjP0VCEpci4GxDj2ylwivuQcIYDOZAs2Do0ymko4Hwg",
+	"B+eQgVO0iF7lvy+irzyeI/GPTVVMZVpBAa+QkvPAGpP5cedISv6V1hCzKh5BOVfrMm7NPwWmsC17pzJ3",
+	"726jN3uVpPVDB5EIr1nYhTz/fzgszY4FF79l0yi/hqJNUlEusHwQaCpndboxNQ+cGa3Zd7wrb69lsOV5",
+	"zP/XDs34dvrj29c//9tL6MnBrsb2LBEclnrWAu2JfIUketdxqWeWon0zT7orW4Y91WvV1P9A9a/jn25O",
+	"qyb8TPkW8UDu7pl+fblM72/lrob5ror3SuUOMGlr43/2wA5aTY8XHBd21hbq+Lq+HoFuc+k5fWoIvVF1",
+	"rHzoRWoE3ZuIDNVK6diLnzrK1vXU2iJ4QuHp/ep6Y0tViwpXWFvXcN1MayGDpa+hgAWRK/K85nULG6i4",
+	"klcSNnebvwIAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
