@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.6.0...v0.7.0) (2026-06-06)
+
+
+### Features
+
+* add disk vendor and model fields with parent inheritance ([685c97f](https://github.com/rosavpn/rosadisk-agent/commit/685c97f482fce25a14cc929a613976fb01ba3582))
+* add disk vendor and model fields with parent inheritance ([58daef6](https://github.com/rosavpn/rosadisk-agent/commit/58daef6bb4d5d7bac0f88133f28f53ff6fe89b0c))
+
 ## [0.6.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.5.0...v0.6.0) (2026-06-06)
 
 
