@@ -37,6 +37,10 @@ func ListDisks() ([]DiskInfo, error) {
 			return nil, fmt.Errorf("failed to parse size for %s: %w", dev.Name, err)
 		}
 
+		if size < 0 {
+			return nil, fmt.Errorf("invalid negative size for %s: %d", dev.Name, size)
+		}
+
 		disk := DiskInfo{
 			Name: dev.Name,
 			Size: uint64(size),
