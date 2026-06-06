@@ -76,13 +76,11 @@ func (s *Server) handleDiskList(ctx context.Context, data interface{}) (interfac
 	disks := make([]event.DiskInfo, len(storageDisks))
 	for i, d := range storageDisks {
 		disks[i] = event.DiskInfo{
-			Name:       d.Name,
-			Size:       d.Size,
-			Type:       d.Type,
-			FSType:     d.FSType,
-			MountPoint: d.MountPoint,
-			Vendor:     d.Vendor,
-			Model:      d.Model,
+			Name:   d.Name,
+			Size:   d.Size,
+			Type:   d.Type,
+			Vendor: d.Vendor,
+			Model:  d.Model,
 		}
 	}
 

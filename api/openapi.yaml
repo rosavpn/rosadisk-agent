@@ -111,7 +111,7 @@ components:
       properties:
         name:
           type: string
-          description: Device name (e.g., sda, sda1)
+          description: Device name (e.g., sda, nvme0n1)
           example: sda
         size:
           type: integer
@@ -119,27 +119,17 @@ components:
           example: 500107862016
         type:
           type: string
-          description: Device type (disk, part, rom, etc.)
+          description: Device type (always "disk")
           example: disk
-        fstype:
-          type: string
-          nullable: true
-          description: Filesystem type (null if none)
-          example: ext4
-        mountpoint:
-          type: string
-          nullable: true
-          description: Mount point (null if not mounted)
-          example: /
         vendor:
           type: string
           nullable: true
-          description: Device vendor (inherited from parent if null)
+          description: Device vendor
           example: ATA
         model:
           type: string
           nullable: true
-          description: Device model (inherited from parent if null)
+          description: Device model
           example: WDC WD10EZEX-08L
 
     ErrorResponse:

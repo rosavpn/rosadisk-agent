@@ -11,18 +11,16 @@ type lsblkOutput struct {
 }
 
 type lsblkDevice struct {
-	Name       string        `json:"name"`
-	Size       json.Number   `json:"size"`
-	Type       string        `json:"type"`
-	FSType     string        `json:"fstype"`
-	MountPoint string        `json:"mountpoint"`
-	Vendor     string        `json:"vendor"`
-	Model      string        `json:"model"`
-	Children   []lsblkDevice `json:"children,omitempty"`
+	Name     string      `json:"name"`
+	Size     json.Number `json:"size"`
+	Type     string      `json:"type"`
+	Vendor   string      `json:"vendor"`
+	Model    string      `json:"model"`
+	Children []lsblkDevice `json:"children,omitempty"`
 }
 
 func ListDisks() ([]DiskInfo, error) {
-	cmd := exec.Command("lsblk", "-J", "-b", "-o", "NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,VENDOR,MODEL")
+	cmd := exec.Command("lsblk", "-J", "-b", "-o", "NAME,SIZE,TYPE,VENDOR,MODEL")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute lsblk: %w", err)
@@ -43,6 +41,15 @@ func ListDisks() ([]DiskInfo, error) {
 
 func parseDevice(dev lsblkDevice, parentVendor, parentModel *string) []DiskInfo {
 	var result []DiskInfo
+
+	// Only include devices with type "disk"
+	if dev.Type != "disk" {
+		// Still process children to find nested disks
+		for _, child := range dev.Children {
+			result = append(result, parseDevice(child, parentVendor, parentModel)...)
+		}
+		return result
+	}
 
 	size, err := dev.Size.Int64()
 	if err != nil {
@@ -71,29 +78,14 @@ func parseDevice(dev lsblkDevice, parentVendor, parentModel *string) []DiskInfo 
 	}
 
 	disk := DiskInfo{
-		Name:       dev.Name,
-		Size:       uint64(size),
-		Type:       dev.Type,
-		FSType:     nil,
-		MountPoint: nil,
-		Vendor:     vendorPtr,
-		Model:      modelPtr,
-	}
-
-	if dev.FSType != "" {
-		disk.FSType = &dev.FSType
-	}
-
-	if dev.MountPoint != "" {
-		disk.MountPoint = &dev.MountPoint
+		Name:   dev.Name,
+		Size:   uint64(size),
+		Type:   dev.Type,
+		Vendor: vendorPtr,
+		Model:  modelPtr,
 	}
 
 	result = append(result, disk)
-
-	// Process children with inherited vendor/model
-	for _, child := range dev.Children {
-		result = append(result, parseDevice(child, vendorPtr, modelPtr)...)
-	}
 
 	return result
 }
