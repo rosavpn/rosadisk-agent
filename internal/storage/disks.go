@@ -11,11 +11,11 @@ type lsblkOutput struct {
 }
 
 type lsblkDevice struct {
-	Name     string      `json:"name"`
-	Size     json.Number `json:"size"`
-	Type     string      `json:"type"`
-	Vendor   string      `json:"vendor"`
-	Model    string      `json:"model"`
+	Name     string        `json:"name"`
+	Size     json.Number   `json:"size"`
+	Type     string        `json:"type"`
+	Vendor   string        `json:"vendor"`
+	Model    string        `json:"model"`
 	Children []lsblkDevice `json:"children,omitempty"`
 }
 
