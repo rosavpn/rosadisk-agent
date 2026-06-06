@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.7.0...v0.8.0) (2026-06-06)
+
+
+### Features
+
+* filter disks only and simplify response ([47cbed5](https://github.com/rosavpn/rosadisk-agent/commit/47cbed5aa977b12d5ac40174bc4624355d8852df))
+* filter disks only and simplify response ([20b067c](https://github.com/rosavpn/rosadisk-agent/commit/20b067c1b4caf3ed994fbc173dee10d099a0e594))
+
+
+### Bug Fixes
+
+* update generated code and format files ([c042c90](https://github.com/rosavpn/rosadisk-agent/commit/c042c904723989fe3a13bfb8836725ffdaebd693))
+
 ## [0.7.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.6.0...v0.7.0) (2026-06-06)
 
 
