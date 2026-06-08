@@ -40,18 +40,24 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 
 	var currentFS *FilesystemInfo
+	var totalSize uint64
+	var deviceCount int
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		if strings.HasPrefix(line, "Label:") {
 			if currentFS != nil {
+				currentFS.Size = totalSize
+				currentFS.RaidProfile = determineRaidProfile(deviceCount, currentFS.Label)
 				filesystems = append(filesystems, *currentFS)
 			}
 
 			currentFS = &FilesystemInfo{
 				Devices: make([]string, 0),
 			}
+			totalSize = 0
+			deviceCount = 0
 
 			parts := strings.Fields(line)
 			for i, part := range parts {
@@ -64,32 +70,49 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 				if part == "uuid:" && i+1 < len(parts) {
 					currentFS.UUID = strings.TrimSuffix(parts[i+1], "")
 				}
-				if part == "total_bytes" && i+1 < len(parts) {
-					size, err := strconv.ParseUint(parts[i+1], 10, 64)
+			}
+		} else if strings.Contains(line, "Total devices") {
+			parts := strings.Fields(line)
+			for i, part := range parts {
+				if part == "devices" && i+1 < len(parts) {
+					count, err := strconv.Atoi(parts[i+1])
 					if err == nil {
-						currentFS.Size = size
+						deviceCount = count
 					}
 				}
 			}
-		} else if currentFS != nil && strings.HasPrefix(strings.TrimSpace(line), "/dev/") {
-			device := strings.TrimSpace(line)
-			currentFS.Devices = append(currentFS.Devices, device)
+		} else if strings.Contains(line, "devid") && strings.Contains(line, "path") {
+			parts := strings.Fields(line)
+			for i, part := range parts {
+				if part == "size" && i+1 < len(parts) {
+					size, err := strconv.ParseUint(parts[i+1], 10, 64)
+					if err == nil {
+						totalSize += size
+					}
+				}
+				if part == "path" && i+1 < len(parts) {
+					currentFS.Devices = append(currentFS.Devices, parts[i+1])
+				}
+			}
 		}
 	}
 
 	if currentFS != nil {
+		currentFS.Size = totalSize
+		currentFS.RaidProfile = determineRaidProfile(deviceCount, currentFS.Label)
 		filesystems = append(filesystems, *currentFS)
 	}
 
-	for i := range filesystems {
-		if len(filesystems[i].Devices) == 1 {
-			filesystems[i].RaidProfile = "single"
-		} else {
-			filesystems[i].RaidProfile = "unknown"
-		}
-	}
-
 	return filesystems, nil
+}
+
+func determineRaidProfile(deviceCount int, label *string) string {
+	if deviceCount == 1 {
+		return "single"
+	} else if deviceCount == 2 {
+		return "raid1"
+	}
+	return "unknown"
 }
 
 func CreateFilesystem(devices []string, label string, raidProfile string) (*FilesystemInfo, error) {
