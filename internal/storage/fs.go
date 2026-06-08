@@ -74,7 +74,7 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 			parts := strings.Fields(line)
 			for i, part := range parts {
 				if part == "Label:" && i+1 < len(parts) {
-					label := parts[i+1]
+					label := strings.Trim(parts[i+1], "'\"")
 					if label != "none" {
 						currentFS.Label = &label
 					}
@@ -219,19 +219,29 @@ func CreateFilesystem(devices []string, label string, raidProfile string) (*File
 	output, err = cmd.Output()
 	if err == nil {
 		scanner := bufio.NewScanner(strings.NewReader(string(output)))
+		var deviceSizes []uint64
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.HasPrefix(line, "uuid:") {
+			if strings.HasPrefix(line, "Label:") {
 				parts := strings.Fields(line)
 				for i, part := range parts {
 					if part == "uuid:" && i+1 < len(parts) {
-						fs.UUID = part
-						break
+						fs.UUID = strings.TrimSuffix(parts[i+1], "")
 					}
 				}
-				break
+			} else if strings.Contains(line, "devid") && strings.Contains(line, "path") {
+				parts := strings.Fields(line)
+				for i, part := range parts {
+					if part == "size" && i+1 < len(parts) {
+						size, err := strconv.ParseUint(parts[i+1], 10, 64)
+						if err == nil {
+							deviceSizes = append(deviceSizes, size)
+						}
+					}
+				}
 			}
 		}
+		fs.Size = calculateSize(deviceSizes, raidProfile)
 	}
 
 	return fs, nil
