@@ -113,6 +113,7 @@ func CreateFilesystem(devices []string, label string, raidProfile string) (*File
 	}
 	args = append(args, devices...)
 
+	// #nosec G204 - device paths are validated by validateDevicePath()
 	cmd := exec.Command(args[0], args[1:]...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -129,6 +130,7 @@ func CreateFilesystem(devices []string, label string, raidProfile string) (*File
 		fs.Label = &label
 	}
 
+	// #nosec G204 - device path is validated by validateDevicePath()
 	cmd = exec.Command("btrfs", "filesystem", "show", "--raw", devices[0])
 	output, err = cmd.Output()
 	if err == nil {
