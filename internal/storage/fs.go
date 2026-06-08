@@ -4,9 +4,19 @@ import (
 	"bufio"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 )
+
+var devicePathRegex = regexp.MustCompile(`^/dev/(sd[a-z]+|nvme[0-9]+n[0-9]+(p[0-9]+)?|vd[a-z]+(p[0-9]+)?)$`)
+
+func validateDevicePath(device string) error {
+	if !devicePathRegex.MatchString(device) {
+		return fmt.Errorf("invalid device path: %s", device)
+	}
+	return nil
+}
 
 type FilesystemInfo struct {
 	UUID        string
@@ -85,6 +95,12 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 func CreateFilesystem(devices []string, label string, raidProfile string) (*FilesystemInfo, error) {
 	if len(devices) == 0 {
 		return nil, fmt.Errorf("at least one device is required")
+	}
+
+	for _, device := range devices {
+		if err := validateDevicePath(device); err != nil {
+			return nil, err
+		}
 	}
 
 	if raidProfile == "" {
