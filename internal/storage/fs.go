@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var devicePathRegex = regexp.MustCompile(`^/dev/(sd[a-z]+|nvme[0-9]+n[0-9]+(p[0-9]+)?|vd[a-z]+(p[0-9]+)?)$`)
+var devicePathRegex = regexp.MustCompile(`^/dev/(sd[a-z]+|nvme[0-9]+n[0-9]+(p[0-9]+)?|vd[a-z]+(p[0-9]+)?|loop[0-9]+)$`)
 
 func validateDevicePath(device string) error {
 	if !devicePathRegex.MatchString(device) {
