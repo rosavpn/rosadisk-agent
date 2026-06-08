@@ -133,15 +133,6 @@ func detectRaidProfile(device string) (string, error) {
 			if strings.Contains(line, "RAID1") {
 				return "raid1", nil
 			}
-			if strings.Contains(line, "RAID10") {
-				return "raid10", nil
-			}
-			if strings.Contains(line, "RAID5") {
-				return "raid5", nil
-			}
-			if strings.Contains(line, "RAID6") {
-				return "raid6", nil
-			}
 		}
 	}
 
