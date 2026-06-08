@@ -17,6 +17,23 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// CreateFilesystemRequest defines model for CreateFilesystemRequest.
+type CreateFilesystemRequest struct {
+	// Devices List of device paths to create filesystem on
+	Devices []string `json:"devices"`
+
+	// Label Optional filesystem label
+	Label *string `json:"label,omitempty"`
+
+	// RaidProfile RAID profile (single, raid0, raid1)
+	RaidProfile *string `json:"raid_profile,omitempty"`
+}
+
+// CreateFilesystemResponse defines model for CreateFilesystemResponse.
+type CreateFilesystemResponse struct {
+	Filesystem Filesystem `json:"filesystem"`
+}
+
 // Disk defines model for Disk.
 type Disk struct {
 	// Model Device model
@@ -46,11 +63,37 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+// Filesystem defines model for Filesystem.
+type Filesystem struct {
+	// Devices List of device paths
+	Devices []string `json:"devices"`
+
+	// Label Filesystem label
+	Label *string `json:"label,omitempty"`
+
+	// RaidProfile RAID profile (single, raid0, raid1)
+	RaidProfile string `json:"raid_profile"`
+
+	// Size Total size in bytes
+	Size int `json:"size"`
+
+	// Uuid Filesystem UUID
+	Uuid string `json:"uuid"`
+}
+
+// FilesystemListResponse defines model for FilesystemListResponse.
+type FilesystemListResponse struct {
+	Filesystems []Filesystem `json:"filesystems"`
+}
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Status    string    `json:"status"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+// CreateFilesystemJSONRequestBody defines body for CreateFilesystem for application/json ContentType.
+type CreateFilesystemJSONRequestBody = CreateFilesystemRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -66,6 +109,12 @@ type ServerInterface interface {
 	// List available disks
 	// (GET /v1/disks)
 	ListDisks(ctx echo.Context) error
+	// List btrfs filesystems
+	// (GET /v1/fs)
+	ListFilesystems(ctx echo.Context) error
+	// Create a new btrfs filesystem
+	// (POST /v1/fs)
+	CreateFilesystem(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -106,6 +155,24 @@ func (w *ServerInterfaceWrapper) ListDisks(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListDisks(ctx)
+	return err
+}
+
+// ListFilesystems converts echo context to params.
+func (w *ServerInterfaceWrapper) ListFilesystems(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListFilesystems(ctx)
+	return err
+}
+
+// CreateFilesystem converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateFilesystem(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateFilesystem(ctx)
 	return err
 }
 
@@ -160,6 +227,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/openapi.json", wrapper.GetOpenAPIJSON, options.OperationMiddlewares["GetOpenAPIJSON"]...)
 	router.GET(options.BaseURL+"/openapi.yaml", wrapper.GetOpenAPIYAML, options.OperationMiddlewares["GetOpenAPIYAML"]...)
 	router.GET(options.BaseURL+"/v1/disks", wrapper.ListDisks, options.OperationMiddlewares["ListDisks"]...)
+	router.GET(options.BaseURL+"/v1/fs", wrapper.ListFilesystems, options.OperationMiddlewares["ListFilesystems"]...)
+	router.POST(options.BaseURL+"/v1/fs", wrapper.CreateFilesystem, options.OperationMiddlewares["CreateFilesystem"]...)
 
 }
 
@@ -168,20 +237,26 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"xFVhb9s2EP0rxG0fOkCxaAdJA30z5qDzkK1BW6Bb12BgpLPNRiI58uzVDfzfhyNlJ7LlecA6DBAggkc+",
-	"vvd4vHuE0jbOGjQUoHiEUC6wUXE40eGB/85bh540xtnGVljzoMJQeu1IWwMFTHClSxQpmgF+Vo2rEQp4",
-	"P/levJ8M5fWH61/O5NUNZGCWda3uOUp+iRnQ2vHKQF6bOWwyMKrBo0dwULzAwXyQiVCpTJhVg9IMv+sc",
-	"GyoFPchBf+lBfqu/oNBG3K8Jw3OYCymH8uXV5UgOL3do2hDO0TNcmjlClIPihar/VOsgPkKlw8NH6LLk",
-	"uT6aKzSV9UeR2/BzpPG78WlnNxl4/GOpPVZQ/JZsbj1p197t9tj7T1gSk+E8uNGB3mBw1gQ8zAmWEQea",
-	"sImDbz3OoIBv8qfsytvUymNe7cwD5b1aH3BLkH10rr23/jgX5PChc3GXaDAENceOczOla6wEWVHrQCId",
-	"fMq6dEofvR9Q1bQ4zi+QomViuqNge5OAdIOBVOO6i0dydHkmL85GL99JWcTvA2Qws75RxDmlCM9470kR",
-	"LZXnJx0q4k3azOyhpePbqQjoY0bOrBdvbFDsnhjP0VCEpci4GxDj2ylwivuQcIYDOZAs2Do0ymko4Hwg",
-	"B+eQgVO0iF7lvy+irzyeI/GPTVVMZVpBAa+QkvPAGpP5cedISv6V1hCzKh5BOVfrMm7NPwWmsC17pzJ3",
-	"726jN3uVpPVDB5EIr1nYhTz/fzgszY4FF79l0yi/hqJNUlEusHwQaCpndboxNQ+cGa3Zd7wrb69lsOV5",
-	"zP/XDs34dvrj29c//9tL6MnBrsb2LBEclnrWAu2JfIUketdxqWeWon0zT7orW4Y91WvV1P9A9a/jn25O",
-	"qyb8TPkW8UDu7pl+fblM72/lrob5ror3SuUOMGlr43/2wA5aTY8XHBd21hbq+Lq+HoFuc+k5fWoIvVF1",
-	"rHzoRWoE3ZuIDNVK6diLnzrK1vXU2iJ4QuHp/ep6Y0tViwpXWFvXcN1MayGDpa+hgAWRK/K85nULG6i4",
-	"klcSNnebvwIAAP//",
+	"zFhtb9u2E/8qBP//Fx0gW5Rru5neeXXTeeiWIE3RrWtQ0NLJZiORKkm5dQN/94GkbMt6sAMk2RoEMC0e",
+	"7373uweefIcjkeWCA9cKh3dYRUvIqF2+lEA1nLMU1FppyK7gSwFKm61cihykZmAFY1ixaLtUkWS5ZoLj",
+	"EL9hSiORICeAcqqXCmmBIqsZJTvVSHDsYfhGszwFHP6N/RhWvoppgL3teh7gGw8zDZm1pNc54BArLRlf",
+	"4I2HM8ZnbjPwtrtUSro2mymdQ9oEeGEXNK1CcaIVNDimmvZyIcxTXqQpnZvHWhbgNWFIyuJPuRRGozOY",
+	"0CLVRobxRQrYq2G4msymqDyAnjkhDxk1xH0EPx2gsY9ww7IxDV8KJiE2BG5jcrMTFPPPEGkDsRlYlQuu",
+	"oBnZPS3m2/8lJDjE//P3KeOX+eLvtTWgVJS0oZkyddu0nIm4LWBTl0lut8rK++lL9H4akFcfXv3ZI2dv",
+	"7hMqTjPoNGE20TPoL/oeUjH1EF9lQHgtGCqmuEWzYt9bNL9l3wExjuZrDaqqZkRIQF6cjQckGO+0Ma5h",
+	"AdKoc086gJpN9IymX+laoY84Zur2Iz5EaZ61wVwBj4Xs1FxuVzVNrienma3F39JcclLKduWBaRjd2Wjc",
+	"sItdEziWkTavNvVWUC8Tq7INzisphezGAma7yZw9hTJQii7ggLmEshRi0/1S0xWd4VPUOStt8M4PKvMB",
+	"/fjBffeerfb8CTvsE7TTrhq+FpqmSHVVckAqf22lXBQsPkrOu3ez6QHA0YjA2ZCQHgx+nveGQTzs0RfB",
+	"uDccjsej0XBoLJ1MJGt2V4PbBKlxeTzPjtfmvsnfv0Krd8aJOq2qb4P5K9BUL7vhKU114Qp3R6xo7Yma",
+	"ZaA0zfJD4QEZjHtk1Bu8uCYktP8fsIcTITOqXQZDz5w9GYoSStVS0yNziPFENFNlcjlDCqQt4ERIdCUU",
+	"Nc0ETRbAtVWrLeLDDTS5nGHT8aVyeoI+6RPjsMiB05zhED/vk/5z7GHXF8I77H9aWl7NegF28jOkUgNl",
+	"FuMQvwbtmDepVJJvTw4IMR+R4NqgCu8wzfOURfao/1kZCNth81Sa1GJrualdrCUfTCEH2DaiEXn+32Ao",
+	"+A6F6SNFllG5xmGZpChaQnSLgMe5YC5idKFMZpRk35hTfhmW/hZnF/8XOfDJ5ey3txd/PDQILTlYH5et",
+	"LaRyiFhSKqo5+Ro0apUz/dKgRGXN7P2ORaRqXq9plt7D678mv7857bWGb9rfamy4uyvTx3fXwDvq7irw",
+	"d0NNq6um6U7LUeHJCqwxebVwsRsdLBhbXY8H4HDWarE+4xqkeU8znQ8kcnPRYSQsQrqizE4P+wFry7qb",
+	"9La0J8c5P6/cN0/IfMfteoT/uZaJQtXr8IeNRRPqPhoH9/nGw7lQLZGov6hid5OC0r+IeP1oLnf90LE5",
+	"vLrNOLppJEPwhDC6g1AZGN2PKTFSRRSBUkmRpvb6G/67SbGiKYuR3FL3Ayal4xdRxOFrIzk7c9PqsErN",
+	"ZuONSkQ0Ne9TkIo8M3OWk8UeLmSKQ7zUOg99PzVyS6F0eEbOCN7cbP4JAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

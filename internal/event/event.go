@@ -5,7 +5,9 @@ import "time"
 type ActionType string
 
 const (
-	ActionDiskList ActionType = "disk:list"
+	ActionDiskList         ActionType = "disk:list"
+	ActionFilesystemList   ActionType = "filesystem:list"
+	ActionFilesystemCreate ActionType = "filesystem:create"
 )
 
 type Event struct {
