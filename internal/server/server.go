@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -61,6 +62,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 func (s *Server) registerHandlers() {
 	s.dispatcher.Register(event.ActionDiskList, event.HandlerFunc(s.handleDiskList))
+	s.dispatcher.Register(event.ActionFilesystemList, event.HandlerFunc(s.handleFilesystemList))
+	s.dispatcher.Register(event.ActionFilesystemCreate, event.HandlerFunc(s.handleFilesystemCreate))
 	s.logger.Info("event handlers registered")
 }
 
@@ -81,12 +84,68 @@ func (s *Server) handleDiskList(ctx context.Context, data interface{}) (interfac
 			Type:   d.Type,
 			Vendor: d.Vendor,
 			Model:  d.Model,
+			FsType: d.FsType,
 		}
 	}
 
 	s.logger.Info("disk list completed", zap.Int("count", len(disks)))
 
 	return event.DiskListResponse{Disks: disks}, nil
+}
+
+func (s *Server) handleFilesystemList(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling filesystem list event")
+
+	storageFS, err := storage.ListFilesystems()
+	if err != nil {
+		s.logger.Error("failed to list filesystems", zap.Error(err))
+		return nil, err
+	}
+
+	filesystems := make([]event.FilesystemInfo, len(storageFS))
+	for i, fs := range storageFS {
+		filesystems[i] = event.FilesystemInfo{
+			UUID:        fs.UUID,
+			Label:       fs.Label,
+			Size:        fs.Size,
+			Devices:     fs.Devices,
+			RaidProfile: fs.RaidProfile,
+		}
+	}
+
+	s.logger.Info("filesystem list completed", zap.Int("count", len(filesystems)))
+
+	return event.FilesystemListResponse{Filesystems: filesystems}, nil
+}
+
+func (s *Server) handleFilesystemCreate(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling filesystem create event")
+
+	req, ok := data.(event.CreateFilesystemRequest)
+	if !ok {
+		s.logger.Error("invalid request type for filesystem create")
+		return nil, fmt.Errorf("invalid request type")
+	}
+
+	fs, err := storage.CreateFilesystem(req.Devices, req.Label, req.RaidProfile)
+	if err != nil {
+		s.logger.Error("failed to create filesystem", zap.Error(err))
+		return nil, err
+	}
+
+	result := event.CreateFilesystemResponse{
+		Filesystem: event.FilesystemInfo{
+			UUID:        fs.UUID,
+			Label:       fs.Label,
+			Size:        fs.Size,
+			Devices:     fs.Devices,
+			RaidProfile: fs.RaidProfile,
+		},
+	}
+
+	s.logger.Info("filesystem created", zap.String("uuid", fs.UUID))
+
+	return result, nil
 }
 
 func (s *Server) emitEvent(action event.ActionType, data interface{}) <-chan event.Result {
@@ -146,4 +205,64 @@ func (s *Server) ListDisks(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, diskListResp)
+}
+
+func (s *Server) ListFilesystems(ctx echo.Context) error {
+	s.logger.Debug("received list filesystems request")
+
+	resultChan := s.emitEvent(event.ActionFilesystemList, event.FilesystemListRequest{})
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	fsListResp, ok := result.Data.(event.FilesystemListResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from filesystem list handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, fsListResp)
+}
+
+func (s *Server) CreateFilesystem(ctx echo.Context) error {
+	s.logger.Debug("received create filesystem request")
+
+	var req gen.CreateFilesystemRequest
+	if err := ctx.Bind(&req); err != nil {
+		s.logger.Error("failed to bind request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
+			Error: "invalid request body",
+		})
+	}
+
+	eventReq := event.CreateFilesystemRequest{
+		Devices:     req.Devices,
+		Label:       req.Label,
+		RaidProfile: string(req.RaidProfile),
+	}
+
+	resultChan := s.emitEvent(event.ActionFilesystemCreate, eventReq)
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	createResp, ok := result.Data.(event.CreateFilesystemResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from filesystem create handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusCreated, createResp)
 }

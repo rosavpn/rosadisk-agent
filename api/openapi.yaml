@@ -76,6 +76,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/fs:
+    get:
+      summary: List btrfs filesystems
+      operationId: ListFilesystems
+      tags:
+        - filesystems
+      responses:
+        "200":
+          description: List of btrfs filesystems
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FilesystemListResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new btrfs filesystem
+      operationId: CreateFilesystem
+      tags:
+        - filesystems
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFilesystemRequest"
+      responses:
+        "201":
+          description: Filesystem created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateFilesystemResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthResponse:
@@ -119,7 +169,7 @@ components:
           example: 500107862016
         type:
           type: string
-          description: Device type (always "disk")
+          description: Device type (disk, loop)
           example: disk
         vendor:
           type: string
@@ -131,6 +181,11 @@ components:
           nullable: true
           description: Device model
           example: WDC WD10EZEX-08L
+        fstype:
+          type: string
+          nullable: true
+          description: Filesystem type (e.g., ext4, btrfs)
+          example: btrfs
 
     ErrorResponse:
       type: object
@@ -141,3 +196,79 @@ components:
           type: string
           description: Error message
           example: failed to list disks
+
+    FilesystemListResponse:
+      type: object
+      required:
+        - filesystems
+      properties:
+        filesystems:
+          type: array
+          items:
+            $ref: "#/components/schemas/Filesystem"
+
+    Filesystem:
+      type: object
+      required:
+        - uuid
+        - size
+        - devices
+        - raid_profile
+      properties:
+        uuid:
+          type: string
+          description: Filesystem UUID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        label:
+          type: string
+          nullable: true
+          description: Filesystem label
+          example: data-pool
+        size:
+          type: integer
+          description: Total size in bytes
+          example: 1000000000000
+        devices:
+          type: array
+          description: List of device paths
+          items:
+            type: string
+          example: ["/dev/sda1", "/dev/sdb1"]
+        raid_profile:
+          type: string
+          description: RAID profile (single, raid0, raid1)
+          example: raid1
+
+    CreateFilesystemRequest:
+      type: object
+      required:
+        - devices
+        - label
+        - raid_profile
+      properties:
+        devices:
+          type: array
+          description: List of device paths to create filesystem on
+          minItems: 1
+          items:
+            type: string
+          example: ["/dev/sda1", "/dev/sdb1"]
+        label:
+          type: string
+          description: Filesystem label
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$'
+          maxLength: 255
+          example: data-pool
+        raid_profile:
+          type: string
+          description: RAID profile (single, raid0, raid1)
+          enum: ["single", "raid0", "raid1"]
+          example: raid1
+
+    CreateFilesystemResponse:
+      type: object
+      required:
+        - filesystem
+      properties:
+        filesystem:
+          $ref: "#/components/schemas/Filesystem"

@@ -16,11 +16,12 @@ type lsblkDevice struct {
 	Type     string        `json:"type"`
 	Vendor   string        `json:"vendor"`
 	Model    string        `json:"model"`
+	FsType   string        `json:"fstype"`
 	Children []lsblkDevice `json:"children,omitempty"`
 }
 
 func ListDisks() ([]DiskInfo, error) {
-	cmd := exec.Command("lsblk", "-J", "-b", "-o", "NAME,SIZE,TYPE,VENDOR,MODEL")
+	cmd := exec.Command("lsblk", "-J", "-b", "-o", "NAME,SIZE,TYPE,VENDOR,MODEL,FSTYPE")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute lsblk: %w", err)
@@ -42,9 +43,7 @@ func ListDisks() ([]DiskInfo, error) {
 func parseDevice(dev lsblkDevice, parentVendor, parentModel *string) []DiskInfo {
 	var result []DiskInfo
 
-	// Only include devices with type "disk"
-	if dev.Type != "disk" {
-		// Still process children to find nested disks
+	if dev.Type != "disk" && dev.Type != "loop" {
 		for _, child := range dev.Children {
 			result = append(result, parseDevice(child, parentVendor, parentModel)...)
 		}
@@ -60,11 +59,11 @@ func parseDevice(dev lsblkDevice, parentVendor, parentModel *string) []DiskInfo 
 		return nil
 	}
 
-	// Inherit vendor/model from parent if current device has null values
 	vendor := dev.Vendor
 	model := dev.Model
+	fstype := dev.FsType
 
-	var vendorPtr, modelPtr *string
+	var vendorPtr, modelPtr, fstypePtr *string
 	if vendor != "" {
 		vendorPtr = &vendor
 	} else if parentVendor != nil {
@@ -77,12 +76,17 @@ func parseDevice(dev lsblkDevice, parentVendor, parentModel *string) []DiskInfo 
 		modelPtr = parentModel
 	}
 
+	if fstype != "" {
+		fstypePtr = &fstype
+	}
+
 	disk := DiskInfo{
 		Name:   dev.Name,
 		Size:   uint64(size),
 		Type:   dev.Type,
 		Vendor: vendorPtr,
 		Model:  modelPtr,
+		FsType: fstypePtr,
 	}
 
 	result = append(result, disk)

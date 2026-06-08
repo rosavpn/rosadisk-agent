@@ -17,8 +17,52 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Defines values for CreateFilesystemRequestRaidProfile.
+const (
+	Raid0  CreateFilesystemRequestRaidProfile = "raid0"
+	Raid1  CreateFilesystemRequestRaidProfile = "raid1"
+	Single CreateFilesystemRequestRaidProfile = "single"
+)
+
+// Valid indicates whether the value is a known member of the CreateFilesystemRequestRaidProfile enum.
+func (e CreateFilesystemRequestRaidProfile) Valid() bool {
+	switch e {
+	case Raid0:
+		return true
+	case Raid1:
+		return true
+	case Single:
+		return true
+	default:
+		return false
+	}
+}
+
+// CreateFilesystemRequest defines model for CreateFilesystemRequest.
+type CreateFilesystemRequest struct {
+	// Devices List of device paths to create filesystem on
+	Devices []string `json:"devices"`
+
+	// Label Filesystem label
+	Label string `json:"label"`
+
+	// RaidProfile RAID profile (single, raid0, raid1)
+	RaidProfile CreateFilesystemRequestRaidProfile `json:"raid_profile"`
+}
+
+// CreateFilesystemRequestRaidProfile RAID profile (single, raid0, raid1)
+type CreateFilesystemRequestRaidProfile string
+
+// CreateFilesystemResponse defines model for CreateFilesystemResponse.
+type CreateFilesystemResponse struct {
+	Filesystem Filesystem `json:"filesystem"`
+}
+
 // Disk defines model for Disk.
 type Disk struct {
+	// Fstype Filesystem type (e.g., ext4, btrfs)
+	Fstype *string `json:"fstype,omitempty"`
+
 	// Model Device model
 	Model *string `json:"model,omitempty"`
 
@@ -28,7 +72,7 @@ type Disk struct {
 	// Size Size in bytes
 	Size int `json:"size"`
 
-	// Type Device type (always "disk")
+	// Type Device type (disk, loop)
 	Type string `json:"type"`
 
 	// Vendor Device vendor
@@ -46,11 +90,37 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+// Filesystem defines model for Filesystem.
+type Filesystem struct {
+	// Devices List of device paths
+	Devices []string `json:"devices"`
+
+	// Label Filesystem label
+	Label *string `json:"label,omitempty"`
+
+	// RaidProfile RAID profile (single, raid0, raid1)
+	RaidProfile string `json:"raid_profile"`
+
+	// Size Total size in bytes
+	Size int `json:"size"`
+
+	// Uuid Filesystem UUID
+	Uuid string `json:"uuid"`
+}
+
+// FilesystemListResponse defines model for FilesystemListResponse.
+type FilesystemListResponse struct {
+	Filesystems []Filesystem `json:"filesystems"`
+}
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Status    string    `json:"status"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+// CreateFilesystemJSONRequestBody defines body for CreateFilesystem for application/json ContentType.
+type CreateFilesystemJSONRequestBody = CreateFilesystemRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -66,6 +136,12 @@ type ServerInterface interface {
 	// List available disks
 	// (GET /v1/disks)
 	ListDisks(ctx echo.Context) error
+	// List btrfs filesystems
+	// (GET /v1/fs)
+	ListFilesystems(ctx echo.Context) error
+	// Create a new btrfs filesystem
+	// (POST /v1/fs)
+	CreateFilesystem(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -106,6 +182,24 @@ func (w *ServerInterfaceWrapper) ListDisks(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ListDisks(ctx)
+	return err
+}
+
+// ListFilesystems converts echo context to params.
+func (w *ServerInterfaceWrapper) ListFilesystems(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListFilesystems(ctx)
+	return err
+}
+
+// CreateFilesystem converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateFilesystem(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateFilesystem(ctx)
 	return err
 }
 
@@ -160,6 +254,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/openapi.json", wrapper.GetOpenAPIJSON, options.OperationMiddlewares["GetOpenAPIJSON"]...)
 	router.GET(options.BaseURL+"/openapi.yaml", wrapper.GetOpenAPIYAML, options.OperationMiddlewares["GetOpenAPIYAML"]...)
 	router.GET(options.BaseURL+"/v1/disks", wrapper.ListDisks, options.OperationMiddlewares["ListDisks"]...)
+	router.GET(options.BaseURL+"/v1/fs", wrapper.ListFilesystems, options.OperationMiddlewares["ListFilesystems"]...)
+	router.POST(options.BaseURL+"/v1/fs", wrapper.CreateFilesystem, options.OperationMiddlewares["CreateFilesystem"]...)
 
 }
 
@@ -168,20 +264,27 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"xFVhb9s2EP0rxG0fOkCxaAdJA30z5qDzkK1BW6Bb12BgpLPNRiI58uzVDfzfhyNlJ7LlecA6DBAggkc+",
-	"vvd4vHuE0jbOGjQUoHiEUC6wUXE40eGB/85bh540xtnGVljzoMJQeu1IWwMFTHClSxQpmgF+Vo2rEQp4",
-	"P/levJ8M5fWH61/O5NUNZGCWda3uOUp+iRnQ2vHKQF6bOWwyMKrBo0dwULzAwXyQiVCpTJhVg9IMv+sc",
-	"GyoFPchBf+lBfqu/oNBG3K8Jw3OYCymH8uXV5UgOL3do2hDO0TNcmjlClIPihar/VOsgPkKlw8NH6LLk",
-	"uT6aKzSV9UeR2/BzpPG78WlnNxl4/GOpPVZQ/JZsbj1p197t9tj7T1gSk+E8uNGB3mBw1gQ8zAmWEQea",
-	"sImDbz3OoIBv8qfsytvUymNe7cwD5b1aH3BLkH10rr23/jgX5PChc3GXaDAENceOczOla6wEWVHrQCId",
-	"fMq6dEofvR9Q1bQ4zi+QomViuqNge5OAdIOBVOO6i0dydHkmL85GL99JWcTvA2Qws75RxDmlCM9470kR",
-	"LZXnJx0q4k3azOyhpePbqQjoY0bOrBdvbFDsnhjP0VCEpci4GxDj2ylwivuQcIYDOZAs2Do0ymko4Hwg",
-	"B+eQgVO0iF7lvy+irzyeI/GPTVVMZVpBAa+QkvPAGpP5cedISv6V1hCzKh5BOVfrMm7NPwWmsC17pzJ3",
-	"726jN3uVpPVDB5EIr1nYhTz/fzgszY4FF79l0yi/hqJNUlEusHwQaCpndboxNQ+cGa3Zd7wrb69lsOV5",
-	"zP/XDs34dvrj29c//9tL6MnBrsb2LBEclnrWAu2JfIUketdxqWeWon0zT7orW4Y91WvV1P9A9a/jn25O",
-	"qyb8TPkW8UDu7pl+fblM72/lrob5ror3SuUOMGlr43/2wA5aTY8XHBd21hbq+Lq+HoFuc+k5fWoIvVF1",
-	"rHzoRWoE3ZuIDNVK6diLnzrK1vXU2iJ4QuHp/ep6Y0tViwpXWFvXcN1MayGDpa+hgAWRK/K85nULG6i4",
-	"klcSNnebvwIAAP//",
+	"zFhtr9M2FP4rlscHmJLWKe3lkm8dBdbpbiBexAa6Q25y2hoSO9hOdwvqf5+Onb6kSVokLhvTpIbYPn7O",
+	"c57zkvuFJiovlARpDY2/UJMsIefu8ZEGbuGJyMCsjYX8BXwqwVhcKrQqQFsBbmMKK5FsH02iRWGFkjSm",
+	"V8JYoubEbyAFt0tDrCKJs0zmO9NESRpQuOF5kQGN39F+Cqu+SXlEg+3zLKLXARUWcneTXRdAY2qsFnJB",
+	"NwHNhZz6xSjYrnKt+RoXMz6DrAlw7xzxOw5A0JRbHhZK4duc31yBXNgljQejUUALbi1oNPH3Ox5+Hodv",
+	"Wfjwev8YXv98hwZNkJqL9H2hFbrehPNiPJ2QapXcNUIuMggInmH+J7qHCGWZI0d+nXqjrPp1JO198K8a",
+	"QBAJfCqFhhQtbQO45ekI5/XuvJp9gMSiI01xmEJJA0117KOM/7qjYU5j+lN/L7t+pbn+3loD4YGRNjQT",
+	"YT623Gz8xhNRxw3kLvQWvYDAjR0GZGb13NyrCcG9ogGVZZbxGb6yuoSW6OYqbVPZxMvfrx4afjN5RN5M",
+	"Ivb47eM/Q3Z59TV3SJ5D5xW4uHXHpDwgcpUDk1HdH5PyNm0a8bnF8kvxGYiQZLa2TiE7MyPGIvbg8mLA",
+	"ooudNSEtLECjuXbuK6Ce91SYjwHJlCrqAPF9G8IVyFTpTqPV8qGl8avxeVKPtOYYruio9nZpDgtct/LR",
+	"DfewK1qn1O80vDkuXceZ6ky2wXmstdLdWACXm8y5UyQHY/gCaszNucggxWqdYRX3F5+jzt/SBu9JrQp8",
+	"Q//45j5x263hbMbeSs0/V9G70veVsjwjpiuJI3bwX1sWl6VIT5Lz+vV0UgM4GjG4HDIWwuDhLBxG6TDk",
+	"D6KLcDi8uBiNhkO86ayQ3LW7HNz3p7N9aY/sdG7uG8rXZ+hhfzqTp4fm22D+Cjyzy254xnJb+sTdEata",
+	"a6IVORjL86K+ecAGFyEbhYMHrxiL3f9vaUDnSufcegVDiGfPhqKCcnhT0yM8JORcNaUyfj4lBrRL4LnS",
+	"5IUyHIsJGS9AWmfWOsT1BTJ+PqVY8bXxdqIe6zF0WBUgeSFoTO/3WO8+dcPY0nHVf790vOLzAtykiqRy",
+	"hDJNaUyfgvXMo5Qq8t3JAWP4kyhpEVX8hfKiyETijvY/GISwHY7PyeQoto6bo55a8SEM8YBdIRqx+/8P",
+	"hlLuUGAdKfOc6zWNK5GSZAnJRwIyLZTwEeMLg8qoyL7GU/0qLL0tzi7+nxUgx8+nv7189se3BqFFg3Uf",
+	"q7uIKSAR88rQkZNPwZLWfVgvESWpcmbvd6oSc+T1mufZV3j91/j3q/NeW7ix/a3Fhru7NL19dxHeSXdX",
+	"UX831LS6ikV3Uo0K3y3BGpNXCxe70cGBcdl1ewDqs1bL7VOJX4fYeEGvQBM/F9Uj4RDyFRduetgPWFvW",
+	"/aS3pX1+mvMnB/3mOzLf0V1P8O++nchhO/xhY9GEuo9GrZ9vAloo0xKJ449i6jspGPuLSte35nLXH2Y2",
+	"9daN4+imIYboO8LoDsLBwOj/+JMSUyYJGDMvs8y1v+F/K4oVz0RK9Ja6H1CUnl/CiYR/GuLs1Kaz4Yzi",
+	"YuOLSiU8w+8pyFSR45zl99KAljqjMV1aW8T9fob7lsrY+JJdMrq53vwbAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
