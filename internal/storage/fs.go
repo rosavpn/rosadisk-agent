@@ -40,7 +40,7 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 
 	var currentFS *FilesystemInfo
-	var totalSize uint64
+	var deviceSizes []uint64
 	var deviceCount int
 
 	for scanner.Scan() {
@@ -48,7 +48,7 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 
 		if strings.HasPrefix(line, "Label:") {
 			if currentFS != nil {
-				currentFS.Size = totalSize
+				currentFS.Size = calculateSize(deviceSizes, deviceCount)
 				currentFS.RaidProfile = determineRaidProfile(deviceCount, currentFS.Label)
 				filesystems = append(filesystems, *currentFS)
 			}
@@ -56,7 +56,7 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 			currentFS = &FilesystemInfo{
 				Devices: make([]string, 0),
 			}
-			totalSize = 0
+			deviceSizes = make([]uint64, 0)
 			deviceCount = 0
 
 			parts := strings.Fields(line)
@@ -87,7 +87,7 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 				if part == "size" && i+1 < len(parts) {
 					size, err := strconv.ParseUint(parts[i+1], 10, 64)
 					if err == nil {
-						totalSize += size
+						deviceSizes = append(deviceSizes, size)
 					}
 				}
 				if part == "path" && i+1 < len(parts) {
@@ -98,12 +98,31 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 	}
 
 	if currentFS != nil {
-		currentFS.Size = totalSize
+		currentFS.Size = calculateSize(deviceSizes, deviceCount)
 		currentFS.RaidProfile = determineRaidProfile(deviceCount, currentFS.Label)
 		filesystems = append(filesystems, *currentFS)
 	}
 
 	return filesystems, nil
+}
+
+func calculateSize(deviceSizes []uint64, deviceCount int) uint64 {
+	if len(deviceSizes) == 0 {
+		return 0
+	}
+
+	if deviceCount == 1 {
+		return deviceSizes[0]
+	}
+
+	minSize := deviceSizes[0]
+	for _, size := range deviceSizes[1:] {
+		if size < minSize {
+			minSize = size
+		}
+	}
+
+	return minSize
 }
 
 func determineRaidProfile(deviceCount int, label *string) string {
