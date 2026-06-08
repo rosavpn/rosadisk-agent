@@ -4,3 +4,4 @@ bin/
 debian-repo/
 deb-packages/
 .opencode/
+.test_folder/

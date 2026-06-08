@@ -9,11 +9,27 @@ import (
 	"strings"
 )
 
-var devicePathRegex = regexp.MustCompile(`^/dev/(sd[a-z]+|nvme[0-9]+n[0-9]+(p[0-9]+)?|vd[a-z]+(p[0-9]+)?|loop[0-9]+)$`)
+var (
+	devicePathRegex = regexp.MustCompile(`^/dev/(sd[a-z]+|nvme[0-9]+n[0-9]+(p[0-9]+)?|vd[a-z]+(p[0-9]+)?|loop[0-9]+)$`)
+	labelRegex      = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9-]*$`)
+)
 
 func validateDevicePath(device string) error {
 	if !devicePathRegex.MatchString(device) {
 		return fmt.Errorf("invalid device path: %s", device)
+	}
+	return nil
+}
+
+func validateLabel(label string) error {
+	if len(label) == 0 {
+		return fmt.Errorf("label is required")
+	}
+	if len(label) > 255 {
+		return fmt.Errorf("label must be at most 255 characters")
+	}
+	if !labelRegex.MatchString(label) {
+		return fmt.Errorf("label must start with alphanumeric and contain only alphanumeric and dash characters")
 	}
 	return nil
 }
@@ -41,14 +57,12 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 
 	var currentFS *FilesystemInfo
 	var deviceSizes []uint64
-	var deviceCount int
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		if strings.HasPrefix(line, "Label:") {
 			if currentFS != nil {
-				currentFS.Size = calculateSize(deviceSizes, deviceCount)
 				filesystems = append(filesystems, *currentFS)
 			}
 
@@ -56,7 +70,6 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 				Devices: make([]string, 0),
 			}
 			deviceSizes = make([]uint64, 0)
-			deviceCount = 0
 
 			parts := strings.Fields(line)
 			for i, part := range parts {
@@ -68,16 +81,6 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 				}
 				if part == "uuid:" && i+1 < len(parts) {
 					currentFS.UUID = strings.TrimSuffix(parts[i+1], "")
-				}
-			}
-		} else if strings.Contains(line, "Total devices") {
-			parts := strings.Fields(line)
-			for i, part := range parts {
-				if part == "devices" && i+1 < len(parts) {
-					count, err := strconv.Atoi(parts[i+1])
-					if err == nil {
-						deviceCount = count
-					}
 				}
 			}
 		} else if strings.Contains(line, "devid") && strings.Contains(line, "path") {
@@ -97,7 +100,6 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 	}
 
 	if currentFS != nil {
-		currentFS.Size = calculateSize(deviceSizes, deviceCount)
 		filesystems = append(filesystems, *currentFS)
 	}
 
@@ -106,8 +108,10 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 			raidProfile, err := detectRaidProfile(filesystems[i].Devices[0])
 			if err == nil {
 				filesystems[i].RaidProfile = raidProfile
+				filesystems[i].Size = calculateSize(deviceSizes, raidProfile)
 			} else {
-				filesystems[i].RaidProfile = determineRaidProfile(deviceCount, filesystems[i].Label)
+				filesystems[i].RaidProfile = "unknown"
+				filesystems[i].Size = calculateSize(deviceSizes, "unknown")
 			}
 		}
 	}
@@ -139,30 +143,29 @@ func detectRaidProfile(device string) (string, error) {
 	return "single", nil
 }
 
-func calculateSize(deviceSizes []uint64, deviceCount int) uint64 {
+func calculateSize(deviceSizes []uint64, raidProfile string) uint64 {
 	if len(deviceSizes) == 0 {
 		return 0
 	}
 
-	if deviceCount == 1 {
+	switch raidProfile {
+	case "raid1":
+		minSize := deviceSizes[0]
+		for _, size := range deviceSizes[1:] {
+			if size < minSize {
+				minSize = size
+			}
+		}
+		return minSize
+	case "raid0":
+		var total uint64
+		for _, size := range deviceSizes {
+			total += size
+		}
+		return total
+	default:
 		return deviceSizes[0]
 	}
-
-	minSize := deviceSizes[0]
-	for _, size := range deviceSizes[1:] {
-		if size < minSize {
-			minSize = size
-		}
-	}
-
-	return minSize
-}
-
-func determineRaidProfile(deviceCount int, label *string) string {
-	if deviceCount == 1 {
-		return "single"
-	}
-	return "unknown"
 }
 
 func CreateFilesystem(devices []string, label string, raidProfile string) (*FilesystemInfo, error) {
@@ -176,14 +179,26 @@ func CreateFilesystem(devices []string, label string, raidProfile string) (*File
 		}
 	}
 
-	if raidProfile == "" {
-		raidProfile = "single"
+	if err := validateLabel(label); err != nil {
+		return nil, err
 	}
 
-	args := []string{"mkfs.btrfs", "-d", raidProfile}
-	if label != "" {
-		args = append(args, "-L", label)
+	if raidProfile != "single" && raidProfile != "raid0" && raidProfile != "raid1" {
+		return nil, fmt.Errorf("invalid raid profile: %s", raidProfile)
 	}
+
+	if raidProfile == "single" && len(devices) > 1 {
+		return nil, fmt.Errorf("single profile requires exactly one device")
+	}
+	if (raidProfile == "raid0" || raidProfile == "raid1") && len(devices) < 2 {
+		return nil, fmt.Errorf("%s profile requires at least two devices", raidProfile)
+	}
+
+	args := []string{"mkfs.btrfs"}
+	if raidProfile == "raid0" || raidProfile == "raid1" {
+		args = append(args, "-d", raidProfile, "-m", raidProfile)
+	}
+	args = append(args, "-L", label)
 	args = append(args, devices...)
 
 	// #nosec G204 - device paths are validated by validateDevicePath()
@@ -196,11 +211,7 @@ func CreateFilesystem(devices []string, label string, raidProfile string) (*File
 	fs := &FilesystemInfo{
 		Devices:     devices,
 		RaidProfile: raidProfile,
-		Label:       nil,
-	}
-
-	if label != "" {
-		fs.Label = &label
+		Label:       &label,
 	}
 
 	// #nosec G204 - device path is validated by validateDevicePath()

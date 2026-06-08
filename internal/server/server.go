@@ -127,17 +127,7 @@ func (s *Server) handleFilesystemCreate(ctx context.Context, data interface{}) (
 		return nil, fmt.Errorf("invalid request type")
 	}
 
-	var label string
-	if req.Label != nil {
-		label = *req.Label
-	}
-
-	raidProfile := req.RaidProfile
-	if raidProfile == "" {
-		raidProfile = "single"
-	}
-
-	fs, err := storage.CreateFilesystem(req.Devices, label, raidProfile)
+	fs, err := storage.CreateFilesystem(req.Devices, req.Label, req.RaidProfile)
 	if err != nil {
 		s.logger.Error("failed to create filesystem", zap.Error(err))
 		return nil, err
@@ -252,18 +242,16 @@ func (s *Server) CreateFilesystem(ctx echo.Context) error {
 	}
 
 	eventReq := event.CreateFilesystemRequest{
-		Devices: req.Devices,
-		Label:   req.Label,
-	}
-	if req.RaidProfile != nil {
-		eventReq.RaidProfile = *req.RaidProfile
+		Devices:     req.Devices,
+		Label:       req.Label,
+		RaidProfile: string(req.RaidProfile),
 	}
 
 	resultChan := s.emitEvent(event.ActionFilesystemCreate, eventReq)
 	result := <-resultChan
 
 	if result.Error != nil {
-		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
 			Error: result.Error.Error(),
 		})
 	}

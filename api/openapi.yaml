@@ -243,6 +243,8 @@ components:
       type: object
       required:
         - devices
+        - label
+        - raid_profile
       properties:
         devices:
           type: array
@@ -253,13 +255,14 @@ components:
           example: ["/dev/sda1", "/dev/sdb1"]
         label:
           type: string
-          nullable: true
-          description: Optional filesystem label
+          description: Filesystem label
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$'
+          maxLength: 255
           example: data-pool
         raid_profile:
           type: string
           description: RAID profile (single, raid0, raid1)
-          default: "single"
+          enum: ["single", "raid0", "raid1"]
           example: raid1
 
     CreateFilesystemResponse:

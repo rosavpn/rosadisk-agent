@@ -31,7 +31,7 @@ type FilesystemListResponse struct {
 
 type CreateFilesystemRequest struct {
 	Devices     []string `json:"devices"`
-	Label       *string  `json:"label"`
+	Label       string   `json:"label"`
 	RaidProfile string   `json:"raid_profile"`
 }
 
