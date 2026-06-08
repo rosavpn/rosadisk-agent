@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.8.0...v0.9.0) (2026-06-08)
+
+
+### Features
+
+* add /v1/fs endpoints for btrfs filesystem management ([318a456](https://github.com/rosavpn/rosadisk-agent/commit/318a456fa7b89316193d9db8d21cbc65854b8dde))
+* add /v1/fs endpoints for btrfs filesystem management ([1edd99c](https://github.com/rosavpn/rosadisk-agent/commit/1edd99c8345c82955de65ab140b798f00e54ccdb))
+* add filesystem creation with validation ([2f9a75b](https://github.com/rosavpn/rosadisk-agent/commit/2f9a75b144a6f312c804277be7c8abb32a59c662))
+* add fstype field to disk list endpoint ([c9f7c6f](https://github.com/rosavpn/rosadisk-agent/commit/c9f7c6ff1b7dd960cfe8381f3909eb208961ed43))
+* detect RAID profile from btrfs chunk tree ([792e99e](https://github.com/rosavpn/rosadisk-agent/commit/792e99e4353d52cb2d3f0577d99b6f44b6e88273))
+
+
+### Bug Fixes
+
+* add nosec comments for validated command execution ([f2da478](https://github.com/rosavpn/rosadisk-agent/commit/f2da4780ea1a6986e6e81debe2f56e286367f6bd))
+* allow loop devices in path validation ([22ac295](https://github.com/rosavpn/rosadisk-agent/commit/22ac295f3a89708e4101b4266947e54502d591e2))
+* include loop devices in disk list ([11f9014](https://github.com/rosavpn/rosadisk-agent/commit/11f901492b66e2fd5ceeef3aa48ee47bbcb07609))
+* parse btrfs filesystem details correctly ([2d6cda8](https://github.com/rosavpn/rosadisk-agent/commit/2d6cda86f328018dd162c23c17e6121b38ccc891))
+* parse UUID, size and label correctly after filesystem creation ([a1bc954](https://github.com/rosavpn/rosadisk-agent/commit/a1bc9548613786ba7e450945f44d8b73e277046f))
+* use minimum device size for RAID1 filesystems ([f28f023](https://github.com/rosavpn/rosadisk-agent/commit/f28f023ad1d63ca9801a282d83873c7936de62e1))
+* validate device paths to prevent command injection ([e1546dc](https://github.com/rosavpn/rosadisk-agent/commit/e1546dc726b66a2f6a9df77ba94996a2c4c07c32))
+
 ## [0.8.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.7.0...v0.8.0) (2026-06-06)
 
 
