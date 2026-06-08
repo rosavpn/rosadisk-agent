@@ -42,9 +42,7 @@ func ListDisks() ([]DiskInfo, error) {
 func parseDevice(dev lsblkDevice, parentVendor, parentModel *string) []DiskInfo {
 	var result []DiskInfo
 
-	// Only include devices with type "disk"
-	if dev.Type != "disk" {
-		// Still process children to find nested disks
+	if dev.Type != "disk" && dev.Type != "loop" {
 		for _, child := range dev.Children {
 			result = append(result, parseDevice(child, parentVendor, parentModel)...)
 		}
@@ -60,7 +58,6 @@ func parseDevice(dev lsblkDevice, parentVendor, parentModel *string) []DiskInfo 
 		return nil
 	}
 
-	// Inherit vendor/model from parent if current device has null values
 	vendor := dev.Vendor
 	model := dev.Model
 
