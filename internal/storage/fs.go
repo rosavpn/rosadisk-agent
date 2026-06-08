@@ -49,7 +49,6 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 		if strings.HasPrefix(line, "Label:") {
 			if currentFS != nil {
 				currentFS.Size = calculateSize(deviceSizes, deviceCount)
-				currentFS.RaidProfile = determineRaidProfile(deviceCount, currentFS.Label)
 				filesystems = append(filesystems, *currentFS)
 			}
 
@@ -99,11 +98,54 @@ func ListFilesystems() ([]FilesystemInfo, error) {
 
 	if currentFS != nil {
 		currentFS.Size = calculateSize(deviceSizes, deviceCount)
-		currentFS.RaidProfile = determineRaidProfile(deviceCount, currentFS.Label)
 		filesystems = append(filesystems, *currentFS)
 	}
 
+	for i := range filesystems {
+		if len(filesystems[i].Devices) > 0 {
+			raidProfile, err := detectRaidProfile(filesystems[i].Devices[0])
+			if err == nil {
+				filesystems[i].RaidProfile = raidProfile
+			} else {
+				filesystems[i].RaidProfile = determineRaidProfile(deviceCount, filesystems[i].Label)
+			}
+		}
+	}
+
 	return filesystems, nil
+}
+
+func detectRaidProfile(device string) (string, error) {
+	// #nosec G204 - device path is validated by validateDevicePath()
+	cmd := exec.Command("btrfs", "inspect-internal", "dump-tree", "-t", "chunk", device)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "type") && strings.Contains(line, "|") {
+			if strings.Contains(line, "RAID0") {
+				return "raid0", nil
+			}
+			if strings.Contains(line, "RAID1") {
+				return "raid1", nil
+			}
+			if strings.Contains(line, "RAID10") {
+				return "raid10", nil
+			}
+			if strings.Contains(line, "RAID5") {
+				return "raid5", nil
+			}
+			if strings.Contains(line, "RAID6") {
+				return "raid6", nil
+			}
+		}
+	}
+
+	return "single", nil
 }
 
 func calculateSize(deviceSizes []uint64, deviceCount int) uint64 {
@@ -128,8 +170,6 @@ func calculateSize(deviceSizes []uint64, deviceCount int) uint64 {
 func determineRaidProfile(deviceCount int, label *string) string {
 	if deviceCount == 1 {
 		return "single"
-	} else if deviceCount == 2 {
-		return "raid1"
 	}
 	return "unknown"
 }
