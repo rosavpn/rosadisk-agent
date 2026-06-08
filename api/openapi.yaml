@@ -169,7 +169,7 @@ components:
           example: 500107862016
         type:
           type: string
-          description: Device type (always "disk")
+          description: Device type (disk, loop)
           example: disk
         vendor:
           type: string
@@ -181,6 +181,11 @@ components:
           nullable: true
           description: Device model
           example: WDC WD10EZEX-08L
+        fstype:
+          type: string
+          nullable: true
+          description: Filesystem type (e.g., ext4, btrfs)
+          example: btrfs
 
     ErrorResponse:
       type: object

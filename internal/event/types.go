@@ -8,6 +8,7 @@ type DiskInfo struct {
 	Type   string  `json:"type"`
 	Vendor *string `json:"vendor"`
 	Model  *string `json:"model"`
+	FsType *string `json:"fstype"`
 }
 
 type DiskListResponse struct {
