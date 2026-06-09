@@ -100,7 +100,7 @@ func MountByUUID(uuid string) (*MountInfo, error) {
 }
 
 func findDeviceByUUID(uuid string) (string, error) {
-	cmd := exec.Command("blkid", "-U", uuid)
+	cmd := exec.Command("blkid", "-U", uuid) // nolint:gosec
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("filesystem not found: %w", err)
@@ -130,14 +130,14 @@ func checkAlreadyMounted(mountpoint string) error {
 }
 
 func ensureMountpointDir(mountpoint string) error {
-	if err := os.MkdirAll(mountpoint, 0755); err != nil {
+	if err := os.MkdirAll(mountpoint, 0750); err != nil {
 		return fmt.Errorf("failed to create mountpoint directory: %w", err)
 	}
 	return nil
 }
 
 func executeMount(device, mountpoint string) error {
-	cmd := exec.Command("mount", "-o", "defaults", device, mountpoint)
+	cmd := exec.Command("mount", "-o", "defaults", device, mountpoint) // nolint:gosec
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to mount: %w, output: %s", err, string(output))
