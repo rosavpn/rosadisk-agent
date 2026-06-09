@@ -38,3 +38,26 @@ type CreateFilesystemRequest struct {
 type CreateFilesystemResponse struct {
 	Filesystem FilesystemInfo `json:"filesystem"`
 }
+
+type MountListRequest struct{}
+
+type MountInfo struct {
+	UUID        string   `json:"uuid"`
+	Label       *string  `json:"label"`
+	Mountpoint  string   `json:"mountpoint"`
+	Devices     []string `json:"devices"`
+	RaidProfile string   `json:"raid_profile"`
+	Size        uint64   `json:"size"`
+}
+
+type MountListResponse struct {
+	Mounts []MountInfo `json:"mounts"`
+}
+
+type MountRequest struct {
+	UUID string `json:"uuid"`
+}
+
+type MountResponse struct {
+	Mount MountInfo `json:"mount"`
+}

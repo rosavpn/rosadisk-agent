@@ -8,6 +8,8 @@ const (
 	ActionDiskList         ActionType = "disk:list"
 	ActionFilesystemList   ActionType = "filesystem:list"
 	ActionFilesystemCreate ActionType = "filesystem:create"
+	ActionMountList        ActionType = "mount:list"
+	ActionMountCreate      ActionType = "mount:create"
 )
 
 type Event struct {
