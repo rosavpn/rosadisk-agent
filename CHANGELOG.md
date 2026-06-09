@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.10.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.9.0...v0.10.0) (2026-06-09)
+
+
+### Features
+
+* add /v1/mounts endpoints for btrfs mount management ([32e79c8](https://github.com/rosavpn/rosadisk-agent/commit/32e79c8a100ba8d206c46d6bdfc1f26f81363fea))
+* add mounts storage layer ([0ddacdd](https://github.com/rosavpn/rosadisk-agent/commit/0ddacdd52f6c37316d1a6267ca41d98ebfd0622c))
+* mounts endpoint ([edc740c](https://github.com/rosavpn/rosadisk-agent/commit/edc740c518090e3d6ad674707da0c11032e45ed5))
+* update mount response with label and used space ([43fbd0a](https://github.com/rosavpn/rosadisk-agent/commit/43fbd0ad97ec18b3a3f431b39e2f66fa81ce2171))
+
+
+### Bug Fixes
+
+* add nolint for Sscanf error ([c965369](https://github.com/rosavpn/rosadisk-agent/commit/c9653695ef0fd6c86ffd79886891c4789f36fcf5))
+* address gosec warnings in mounts.go ([db1fb4d](https://github.com/rosavpn/rosadisk-agent/commit/db1fb4d44139fed77e67b6efb8f08de65d754e03))
+* create mountpoint directory before mounting ([2dd58fb](https://github.com/rosavpn/rosadisk-agent/commit/2dd58fbb3b0769244f1cd0328b2baf06b2f23321))
+* get label from btrfs filesystem show ([bbda708](https://github.com/rosavpn/rosadisk-agent/commit/bbda70816b7ac76c6edd126d1783053a825865cb))
+* parse label and used from btrfs commands ([c3ef107](https://github.com/rosavpn/rosadisk-agent/commit/c3ef107a5149390ce756deb145d4b308afc2b928))
+* use correct gosec nolint format ([e7053c0](https://github.com/rosavpn/rosadisk-agent/commit/e7053c0b679cab1548531ea48deaa5570a53c9da))
+
 ## [0.9.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.8.0...v0.9.0) (2026-06-08)
 
 
