@@ -1,0 +1,228 @@
+package storage
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
+)
+
+var uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
+type MountInfo struct {
+	UUID       string
+	Label      string
+	Mountpoint string
+	Devices    []string
+	Used       uint64
+}
+
+func ListMounts() ([]MountInfo, error) {
+	file, err := os.Open("/proc/mounts")
+	if err != nil {
+		return nil, fmt.Errorf("failed to open /proc/mounts: %w", err)
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	mounts := make([]MountInfo, 0)
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+
+		device := fields[0]
+		mountpoint := fields[1]
+		fstype := fields[2]
+
+		if fstype != "btrfs" {
+			continue
+		}
+
+		if !strings.HasPrefix(mountpoint, "/mnt/rosadisk/") {
+			continue
+		}
+
+		uuid := strings.TrimPrefix(mountpoint, "/mnt/rosadisk/")
+
+		label, used, err := getFilesystemInfo(mountpoint, uuid)
+		if err != nil {
+			label = ""
+			used = 0
+		}
+
+		mount := MountInfo{
+			UUID:       uuid,
+			Label:      label,
+			Mountpoint: mountpoint,
+			Devices:    []string{device},
+			Used:       used,
+		}
+
+		mounts = append(mounts, mount)
+	}
+
+	return mounts, nil
+}
+
+func MountByUUID(uuid string) (*MountInfo, error) {
+	if !uuidRegex.MatchString(uuid) {
+		return nil, fmt.Errorf("invalid UUID format")
+	}
+
+	device, err := findDeviceByUUID(uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	mountpoint := filepath.Join("/mnt/rosadisk", uuid)
+
+	if err := checkAlreadyMounted(mountpoint); err != nil {
+		return nil, err
+	}
+
+	if err := ensureMountpointDir(mountpoint); err != nil {
+		return nil, err
+	}
+
+	if err := executeMount(device, mountpoint); err != nil {
+		return nil, err
+	}
+
+	label, used, err := getFilesystemInfo(mountpoint, uuid)
+	if err != nil {
+		label = ""
+		used = 0
+	}
+
+	mount := &MountInfo{
+		UUID:       uuid,
+		Label:      label,
+		Mountpoint: mountpoint,
+		Devices:    []string{device},
+		Used:       used,
+	}
+
+	return mount, nil
+}
+
+func findDeviceByUUID(uuid string) (string, error) {
+	cmd := exec.Command("blkid", "-U", uuid) // #nosec G204
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("filesystem not found: %w", err)
+	}
+
+	device := strings.TrimSpace(string(output))
+	if device == "" {
+		return "", fmt.Errorf("filesystem not found")
+	}
+
+	return device, nil
+}
+
+func checkAlreadyMounted(mountpoint string) error {
+	mounts, err := ListMounts()
+	if err != nil {
+		return err
+	}
+
+	for _, mount := range mounts {
+		if mount.Mountpoint == mountpoint {
+			return fmt.Errorf("already mounted at %s", mountpoint)
+		}
+	}
+
+	return nil
+}
+
+func ensureMountpointDir(mountpoint string) error {
+	if err := os.MkdirAll(mountpoint, 0750); err != nil {
+		return fmt.Errorf("failed to create mountpoint directory: %w", err)
+	}
+	return nil
+}
+
+func executeMount(device, mountpoint string) error {
+	cmd := exec.Command("mount", "-o", "defaults", device, mountpoint) // #nosec G204
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to mount: %w, output: %s", err, string(output))
+	}
+	return nil
+}
+
+func getFilesystemInfo(mountpoint, uuid string) (string, uint64, error) {
+	label, err := getFilesystemLabel(uuid)
+	if err != nil {
+		label = ""
+	}
+
+	used, err := getFilesystemUsed(mountpoint)
+	if err != nil {
+		used = 0
+	}
+
+	return label, used, nil
+}
+
+func getFilesystemLabel(uuid string) (string, error) {
+	cmd := exec.Command("btrfs", "filesystem", "show", uuid) // #nosec G204
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get filesystem label: %w", err)
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "Label:") {
+			idx := strings.Index(line, "'")
+			if idx == -1 {
+				continue
+			}
+			start := idx + 1
+			end := strings.Index(line[start:], "'")
+			if end == -1 {
+				continue
+			}
+			label := line[start : start+end]
+			if label != "none" && label != "" {
+				return label, nil
+			}
+		}
+	}
+
+	return "", nil
+}
+
+func getFilesystemUsed(mountpoint string) (uint64, error) {
+	cmd := exec.Command("btrfs", "filesystem", "usage", "-b", mountpoint) // #nosec G204
+	output, err := cmd.Output()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get filesystem usage: %w", err)
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "Used:") {
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
+				var used uint64
+				fmt.Sscanf(fields[1], "%d", &used) // #nosec G104
+				return used, nil
+			}
+		}
+	}
+
+	return 0, nil
+}

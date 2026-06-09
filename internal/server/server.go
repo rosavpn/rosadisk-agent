@@ -64,6 +64,8 @@ func (s *Server) registerHandlers() {
 	s.dispatcher.Register(event.ActionDiskList, event.HandlerFunc(s.handleDiskList))
 	s.dispatcher.Register(event.ActionFilesystemList, event.HandlerFunc(s.handleFilesystemList))
 	s.dispatcher.Register(event.ActionFilesystemCreate, event.HandlerFunc(s.handleFilesystemCreate))
+	s.dispatcher.Register(event.ActionMountList, event.HandlerFunc(s.handleMountList))
+	s.dispatcher.Register(event.ActionMountCreate, event.HandlerFunc(s.handleMountCreate))
 	s.logger.Info("event handlers registered")
 }
 
@@ -144,6 +146,61 @@ func (s *Server) handleFilesystemCreate(ctx context.Context, data interface{}) (
 	}
 
 	s.logger.Info("filesystem created", zap.String("uuid", fs.UUID))
+
+	return result, nil
+}
+
+func (s *Server) handleMountList(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling mount list event")
+
+	storageMounts, err := storage.ListMounts()
+	if err != nil {
+		s.logger.Error("failed to list mounts", zap.Error(err))
+		return nil, err
+	}
+
+	mounts := make([]event.MountInfo, len(storageMounts))
+	for i, m := range storageMounts {
+		mounts[i] = event.MountInfo{
+			UUID:       m.UUID,
+			Label:      m.Label,
+			Mountpoint: m.Mountpoint,
+			Devices:    m.Devices,
+			Used:       m.Used,
+		}
+	}
+
+	s.logger.Info("mount list completed", zap.Int("count", len(mounts)))
+
+	return event.MountListResponse{Mounts: mounts}, nil
+}
+
+func (s *Server) handleMountCreate(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling mount create event")
+
+	req, ok := data.(event.MountRequest)
+	if !ok {
+		s.logger.Error("invalid request type for mount create")
+		return nil, fmt.Errorf("invalid request type")
+	}
+
+	mount, err := storage.MountByUUID(req.UUID)
+	if err != nil {
+		s.logger.Error("failed to mount filesystem", zap.Error(err))
+		return nil, err
+	}
+
+	result := event.MountResponse{
+		Mount: event.MountInfo{
+			UUID:       mount.UUID,
+			Label:      mount.Label,
+			Mountpoint: mount.Mountpoint,
+			Devices:    mount.Devices,
+			Used:       mount.Used,
+		},
+	}
+
+	s.logger.Info("filesystem mounted", zap.String("uuid", mount.UUID), zap.String("mountpoint", mount.Mountpoint))
 
 	return result, nil
 }
@@ -265,4 +322,62 @@ func (s *Server) CreateFilesystem(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusCreated, createResp)
+}
+
+func (s *Server) ListMounts(ctx echo.Context) error {
+	s.logger.Debug("received list mounts request")
+
+	resultChan := s.emitEvent(event.ActionMountList, event.MountListRequest{})
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	mountListResp, ok := result.Data.(event.MountListResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from mount list handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, mountListResp)
+}
+
+func (s *Server) MountFilesystem(ctx echo.Context) error {
+	s.logger.Debug("received mount filesystem request")
+
+	var req gen.MountRequest
+	if err := ctx.Bind(&req); err != nil {
+		s.logger.Error("failed to bind request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
+			Error: "invalid request body",
+		})
+	}
+
+	eventReq := event.MountRequest{
+		UUID: req.Uuid,
+	}
+
+	resultChan := s.emitEvent(event.ActionMountCreate, eventReq)
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	mountResp, ok := result.Data.(event.MountResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from mount create handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusCreated, mountResp)
 }

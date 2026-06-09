@@ -126,6 +126,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/mounts:
+    get:
+      summary: List mounted btrfs filesystems
+      operationId: ListMounts
+      tags:
+        - mounts
+      responses:
+        "200":
+          description: List of mounted btrfs filesystems
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MountListResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Mount a btrfs filesystem by UUID
+      operationId: MountFilesystem
+      tags:
+        - mounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MountRequest"
+      responses:
+        "201":
+          description: Filesystem mounted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MountResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthResponse:
@@ -272,3 +322,64 @@ components:
       properties:
         filesystem:
           $ref: "#/components/schemas/Filesystem"
+
+    MountListResponse:
+      type: object
+      required:
+        - mounts
+      properties:
+        mounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/MountInfo"
+
+    MountInfo:
+      type: object
+      required:
+        - uuid
+        - label
+        - mountpoint
+        - devices
+        - used
+      properties:
+        uuid:
+          type: string
+          description: Filesystem UUID
+          example: 550e8400-e29b-41d4-a716-446655440000
+        label:
+          type: string
+          description: Filesystem label
+          example: data-pool
+        mountpoint:
+          type: string
+          description: Mount point path
+          example: /mnt/rosadisk/550e8400-e29b-41d4-a716-446655440000
+        devices:
+          type: array
+          description: List of device paths
+          items:
+            type: string
+          example: ["/dev/sda1", "/dev/sdb1"]
+        used:
+          type: integer
+          description: Used space in bytes
+          example: 500000000000
+
+    MountRequest:
+      type: object
+      required:
+        - uuid
+      properties:
+        uuid:
+          type: string
+          description: Filesystem UUID to mount
+          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+    MountResponse:
+      type: object
+      required:
+        - mount
+      properties:
+        mount:
+          $ref: "#/components/schemas/MountInfo"
