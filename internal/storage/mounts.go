@@ -53,7 +53,7 @@ func ListMounts() ([]MountInfo, error) {
 
 		uuid := strings.TrimPrefix(mountpoint, "/mnt/rosadisk/")
 
-		label, used, err := getFilesystemInfo(mountpoint)
+		label, used, err := getFilesystemInfo(mountpoint, uuid)
 		if err != nil {
 			label = ""
 			used = 0
@@ -97,7 +97,7 @@ func MountByUUID(uuid string) (*MountInfo, error) {
 		return nil, err
 	}
 
-	label, used, err := getFilesystemInfo(mountpoint)
+	label, used, err := getFilesystemInfo(mountpoint, uuid)
 	if err != nil {
 		label = ""
 		used = 0
@@ -160,33 +160,65 @@ func executeMount(device, mountpoint string) error {
 	return nil
 }
 
-func getFilesystemInfo(mountpoint string) (string, uint64, error) {
-	cmd := exec.Command("btrfs", "filesystem", "usage", "-b", mountpoint) // #nosec G204
-	output, err := cmd.Output()
+func getFilesystemInfo(mountpoint, uuid string) (string, uint64, error) {
+	label, err := getFilesystemLabel(uuid)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to get filesystem usage: %w", err)
+		label = ""
 	}
 
-	var label string
-	var used uint64
+	used, err := getFilesystemUsed(mountpoint)
+	if err != nil {
+		used = 0
+	}
+
+	return label, used, nil
+}
+
+func getFilesystemLabel(uuid string) (string, error) {
+	cmd := exec.Command("sudo", "btrfs", "filesystem", "show", uuid) // #nosec G204
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get filesystem label: %w", err)
+	}
 
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "Label:") {
-			parts := strings.SplitN(line, ":", 2)
+			parts := strings.SplitN(line, "Label:", 2)
 			if len(parts) == 2 {
-				label = strings.TrimSpace(parts[1])
-			}
-		}
-		if strings.HasPrefix(line, "Used:") {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				usedStr := strings.TrimSpace(parts[1])
-				fmt.Sscanf(usedStr, "%d", &used)
+				labelPart := strings.TrimSpace(parts[1])
+				if labelPart != "none" && labelPart != "" {
+					label := strings.Trim(labelPart, "'\"")
+					return label, nil
+				}
 			}
 		}
 	}
 
-	return label, used, nil
+	return "", nil
+}
+
+func getFilesystemUsed(mountpoint string) (uint64, error) {
+	cmd := exec.Command("sudo", "btrfs", "filesystem", "usage", "-b", mountpoint) // #nosec G204
+	output, err := cmd.Output()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get filesystem usage: %w", err)
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "Used:") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				usedStr := strings.TrimSpace(parts[1])
+				var used uint64
+				fmt.Sscanf(usedStr, "%d", &used)
+				return used, nil
+			}
+		}
+	}
+
+	return 0, nil
 }
