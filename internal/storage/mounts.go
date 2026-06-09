@@ -175,7 +175,7 @@ func getFilesystemInfo(mountpoint, uuid string) (string, uint64, error) {
 }
 
 func getFilesystemLabel(uuid string) (string, error) {
-	cmd := exec.Command("sudo", "btrfs", "filesystem", "show", uuid) // #nosec G204
+	cmd := exec.Command("btrfs", "filesystem", "show", uuid) // #nosec G204
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to get filesystem label: %w", err)
@@ -185,13 +185,18 @@ func getFilesystemLabel(uuid string) (string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "Label:") {
-			parts := strings.SplitN(line, "Label:", 2)
-			if len(parts) == 2 {
-				labelPart := strings.TrimSpace(parts[1])
-				if labelPart != "none" && labelPart != "" {
-					label := strings.Trim(labelPart, "'\"")
-					return label, nil
-				}
+			idx := strings.Index(line, "'")
+			if idx == -1 {
+				continue
+			}
+			start := idx + 1
+			end := strings.Index(line[start:], "'")
+			if end == -1 {
+				continue
+			}
+			label := line[start : start+end]
+			if label != "none" && label != "" {
+				return label, nil
 			}
 		}
 	}
@@ -200,7 +205,7 @@ func getFilesystemLabel(uuid string) (string, error) {
 }
 
 func getFilesystemUsed(mountpoint string) (uint64, error) {
-	cmd := exec.Command("sudo", "btrfs", "filesystem", "usage", "-b", mountpoint) // #nosec G204
+	cmd := exec.Command("btrfs", "filesystem", "usage", "-b", mountpoint) // #nosec G204
 	output, err := cmd.Output()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get filesystem usage: %w", err)
@@ -208,13 +213,12 @@ func getFilesystemUsed(mountpoint string) (uint64, error) {
 
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := strings.TrimSpace(scanner.Text())
 		if strings.HasPrefix(line, "Used:") {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) == 2 {
-				usedStr := strings.TrimSpace(parts[1])
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
 				var used uint64
-				fmt.Sscanf(usedStr, "%d", &used)
+				fmt.Sscanf(fields[1], "%d", &used)
 				return used, nil
 			}
 		}
