@@ -162,12 +162,11 @@ func (s *Server) handleMountList(ctx context.Context, data interface{}) (interfa
 	mounts := make([]event.MountInfo, len(storageMounts))
 	for i, m := range storageMounts {
 		mounts[i] = event.MountInfo{
-			UUID:        m.UUID,
-			Label:       m.Label,
-			Mountpoint:  m.Mountpoint,
-			Devices:     m.Devices,
-			RaidProfile: m.RaidProfile,
-			Size:        m.Size,
+			UUID:       m.UUID,
+			Label:      m.Label,
+			Mountpoint: m.Mountpoint,
+			Devices:    m.Devices,
+			Used:       m.Used,
 		}
 	}
 
@@ -197,6 +196,7 @@ func (s *Server) handleMountCreate(ctx context.Context, data interface{}) (inter
 			Label:      mount.Label,
 			Mountpoint: mount.Mountpoint,
 			Devices:    mount.Devices,
+			Used:       mount.Used,
 		},
 	}
 

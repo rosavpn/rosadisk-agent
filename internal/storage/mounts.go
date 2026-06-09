@@ -13,12 +13,11 @@ import (
 var uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 type MountInfo struct {
-	UUID        string
-	Label       *string
-	Mountpoint  string
-	Devices     []string
-	RaidProfile string
-	Size        uint64
+	UUID       string
+	Label      string
+	Mountpoint string
+	Devices    []string
+	Used       uint64
 }
 
 func ListMounts() ([]MountInfo, error) {
@@ -54,10 +53,18 @@ func ListMounts() ([]MountInfo, error) {
 
 		uuid := strings.TrimPrefix(mountpoint, "/mnt/rosadisk/")
 
+		label, used, err := getFilesystemInfo(mountpoint)
+		if err != nil {
+			label = ""
+			used = 0
+		}
+
 		mount := MountInfo{
 			UUID:       uuid,
+			Label:      label,
 			Mountpoint: mountpoint,
 			Devices:    []string{device},
+			Used:       used,
 		}
 
 		mounts = append(mounts, mount)
@@ -90,10 +97,18 @@ func MountByUUID(uuid string) (*MountInfo, error) {
 		return nil, err
 	}
 
+	label, used, err := getFilesystemInfo(mountpoint)
+	if err != nil {
+		label = ""
+		used = 0
+	}
+
 	mount := &MountInfo{
 		UUID:       uuid,
+		Label:      label,
 		Mountpoint: mountpoint,
 		Devices:    []string{device},
+		Used:       used,
 	}
 
 	return mount, nil
@@ -143,4 +158,35 @@ func executeMount(device, mountpoint string) error {
 		return fmt.Errorf("failed to mount: %w, output: %s", err, string(output))
 	}
 	return nil
+}
+
+func getFilesystemInfo(mountpoint string) (string, uint64, error) {
+	cmd := exec.Command("btrfs", "filesystem", "usage", "-b", mountpoint) // #nosec G204
+	output, err := cmd.Output()
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to get filesystem usage: %w", err)
+	}
+
+	var label string
+	var used uint64
+
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "Label:") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				label = strings.TrimSpace(parts[1])
+			}
+		}
+		if strings.HasPrefix(line, "Used:") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				usedStr := strings.TrimSpace(parts[1])
+				fmt.Sscanf(usedStr, "%d", &used)
+			}
+		}
+	}
+
+	return label, used, nil
 }

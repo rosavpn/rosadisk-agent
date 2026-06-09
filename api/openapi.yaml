@@ -337,10 +337,10 @@ components:
       type: object
       required:
         - uuid
+        - label
         - mountpoint
         - devices
-        - raid_profile
-        - size
+        - used
       properties:
         uuid:
           type: string
@@ -348,7 +348,6 @@ components:
           example: 550e8400-e29b-41d4-a716-446655440000
         label:
           type: string
-          nullable: true
           description: Filesystem label
           example: data-pool
         mountpoint:
@@ -361,14 +360,10 @@ components:
           items:
             type: string
           example: ["/dev/sda1", "/dev/sdb1"]
-        raid_profile:
-          type: string
-          description: RAID profile (single, raid0, raid1)
-          example: raid1
-        size:
+        used:
           type: integer
-          description: Total size in bytes
-          example: 1000000000000
+          description: Used space in bytes
+          example: 500000000000
 
     MountRequest:
       type: object
