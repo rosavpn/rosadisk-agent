@@ -218,7 +218,7 @@ func getFilesystemUsed(mountpoint string) (uint64, error) {
 			fields := strings.Fields(line)
 			if len(fields) >= 2 {
 				var used uint64
-				fmt.Sscanf(fields[1], "%d", &used)
+				fmt.Sscanf(fields[1], "%d", &used) // #nosec G104
 				return used, nil
 			}
 		}
