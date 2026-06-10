@@ -107,12 +107,12 @@ type CreateSubvolumeRequest struct {
 	Name        string
 	FsUUID      string
 	Compression bool
-	Quota       QuotaConfig
-	Snapshots   SnapshotConfig
-	Backups     BackupConfig
 	Defrag      bool
 	NFS         bool
 	SMB         bool
+	Quota       QuotaConfig
+	Snapshots   SnapshotConfig
+	Backups     BackupConfig
 }
 
 type CreateSubvolumeResponse struct {

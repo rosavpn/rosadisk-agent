@@ -591,6 +591,10 @@ components:
       required:
         - name
         - fs_uuid
+        - compression
+        - defrag
+        - nfs
+        - smb
       properties:
         name:
           type: string
@@ -602,7 +606,6 @@ components:
           description: Parent filesystem UUID from GET /v1/fs
         compression:
           type: boolean
-          default: false
         quota:
           $ref: "#/components/schemas/QuotaConfig"
         snapshots:
@@ -611,13 +614,10 @@ components:
           $ref: "#/components/schemas/BackupConfig"
         defrag:
           type: boolean
-          default: false
         nfs:
           type: boolean
-          default: false
         smb:
           type: boolean
-          default: false
 
     CreateSubvolumeResponse:
       type: object

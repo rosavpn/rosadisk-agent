@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"go.uber.org/zap"
 	"rosadisk-agent/api"
 	"rosadisk-agent/api/gen"
+	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/event"
 	"rosadisk-agent/internal/storage"
 )
@@ -427,10 +429,10 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 	eventReq := event.CreateSubvolumeRequest{
 		Name:        req.Name,
 		FsUUID:      req.FsUuid.String(),
-		Compression: req.Compression != nil && *req.Compression,
-		Defrag:      req.Defrag != nil && *req.Defrag,
-		NFS:         req.Nfs != nil && *req.Nfs,
-		SMB:         req.Smb != nil && *req.Smb,
+		Compression: req.Compression,
+		Defrag:      req.Defrag,
+		NFS:         req.Nfs,
+		SMB:         req.Smb,
 	}
 
 	if req.Quota != nil {
@@ -539,37 +541,37 @@ func (s *Server) DeleteSubvolume(ctx echo.Context, id openapi_types.UUID) error 
 func (s *Server) handleSubvolumeList(ctx context.Context, data interface{}) (interface{}, error) {
 	s.logger.Info("handling subvolume list event")
 
-	storageSubvols, err := storage.ListSubvolumes(s.DB)
+	dbRecords, err := database.ListSubvolumes(s.DB)
 	if err != nil {
 		s.logger.Error("failed to list subvolumes", zap.Error(err))
 		return nil, err
 	}
 
-	subvolumes := make([]event.SubvolumeInfo, len(storageSubvols))
-	for i, sv := range storageSubvols {
+	subvolumes := make([]event.SubvolumeInfo, len(dbRecords))
+	for i, r := range dbRecords {
 		subvolumes[i] = event.SubvolumeInfo{
-			ID:          sv.ID,
-			Name:        sv.Name,
-			FsUUID:      sv.FsUUID,
-			Path:        sv.Path,
-			Compression: sv.Compression,
+			ID:          r.ID,
+			Name:        r.Name,
+			FsUUID:      r.FsUUID,
+			Path:        r.Path,
+			Compression: r.Compression,
 			Quota: event.QuotaConfig{
-				Enabled: sv.Quota.Enabled,
-				Limit:   sv.Quota.Limit,
+				Enabled: r.QuotaEnabled,
+				Limit:   r.QuotaLimit,
 			},
 			Snapshots: event.SnapshotConfig{
-				Enabled:   sv.Snapshots.Enabled,
-				Frequency: sv.Snapshots.Frequency,
-				Retention: sv.Snapshots.Retention,
+				Enabled:   r.SnapshotEnabled,
+				Frequency: r.SnapshotFrequency,
+				Retention: r.SnapshotRetention,
 			},
 			Backups: event.BackupConfig{
-				Incremental: convertBackupSchedule(sv.Backups.Incremental),
-				Full:        convertBackupSchedule(sv.Backups.Full),
+				Incremental: toEventBackupSchedule(r.BackupIncrementalEnabled, r.BackupIncrementalFrequency),
+				Full:        toEventBackupSchedule(r.BackupFullEnabled, r.BackupFullFrequency),
 			},
-			Defrag:    sv.Defrag,
-			NFS:       sv.NFS,
-			SMB:       sv.SMB,
-			CreatedAt: sv.CreatedAt.Format(time.RFC3339),
+			Defrag:    r.Defrag,
+			NFS:       r.NFS,
+			SMB:       r.SMB,
+			CreatedAt: r.CreatedAt.Format(time.RFC3339),
 		}
 	}
 
@@ -587,62 +589,74 @@ func (s *Server) handleSubvolumeCreate(ctx context.Context, data interface{}) (i
 		return nil, fmt.Errorf("invalid request type")
 	}
 
-	storageReq := storage.CreateSubvolumeRequest{
-		Name:        req.Name,
-		FsUUID:      req.FsUUID,
-		Compression: req.Compression,
-		Quota: storage.QuotaConfig{
-			Enabled: req.Quota.Enabled,
-			Limit:   req.Quota.Limit,
-		},
-		Snapshots: storage.SnapshotConfig{
-			Enabled:   req.Snapshots.Enabled,
-			Frequency: req.Snapshots.Frequency,
-			Retention: req.Snapshots.Retention,
-		},
-		Backups: storage.BackupConfig{
-			Incremental: convertToStorageBackupSchedule(req.Backups.Incremental),
-			Full:        convertToStorageBackupSchedule(req.Backups.Full),
-		},
-		Defrag: req.Defrag,
-		NFS:    req.NFS,
-		SMB:    req.SMB,
+	mountpoint, err := storage.FindMountpointByUUID(req.FsUUID)
+	if err != nil {
+		s.logger.Error("filesystem not mounted", zap.Error(err))
+		return nil, err
 	}
 
-	sv, err := storage.CreateSubvolume(s.DB, storageReq)
+	var quotaLimit *int64
+	if req.Quota.Enabled {
+		quotaLimit = req.Quota.Limit
+	}
+
+	subvolPath, err := storage.CreateSubvolumeBtrfs(storage.CreateSubvolumeBtrfsRequest{
+		Mountpoint:  mountpoint,
+		Name:        req.Name,
+		Compression: req.Compression,
+		QuotaLimit:  quotaLimit,
+	})
 	if err != nil {
-		s.logger.Error("failed to create subvolume", zap.Error(err))
+		s.logger.Error("failed to create btrfs subvolume", zap.Error(err))
+		return nil, err
+	}
+
+	id := uuid.New().String()
+
+	dbRecord := database.CreateSubvolumeRecord{
+		ID:                         id,
+		Name:                       req.Name,
+		FsUUID:                     req.FsUUID,
+		Path:                       subvolPath,
+		Compression:                req.Compression,
+		QuotaEnabled:               req.Quota.Enabled,
+		QuotaLimit:                 req.Quota.Limit,
+		SnapshotEnabled:            req.Snapshots.Enabled,
+		SnapshotFrequency:          req.Snapshots.Frequency,
+		SnapshotRetention:          req.Snapshots.Retention,
+		BackupIncrementalEnabled:   req.Backups.Incremental != nil && req.Backups.Incremental.Enabled,
+		BackupIncrementalFrequency: backupScheduleFreq(req.Backups.Incremental),
+		BackupFullEnabled:          req.Backups.Full != nil && req.Backups.Full.Enabled,
+		BackupFullFrequency:        backupScheduleFreq(req.Backups.Full),
+		Defrag:                     req.Defrag,
+		NFS:                        req.NFS,
+		SMB:                        req.SMB,
+	}
+
+	if err := database.InsertSubvolumeRecord(s.DB, dbRecord); err != nil {
+		_ = storage.DeleteSubvolumeBtrfs(subvolPath)
+		s.logger.Error("failed to persist subvolume", zap.Error(err))
 		return nil, err
 	}
 
 	result := event.CreateSubvolumeResponse{
 		Subvolume: event.SubvolumeInfo{
-			ID:          sv.ID,
-			Name:        sv.Name,
-			FsUUID:      sv.FsUUID,
-			Path:        sv.Path,
-			Compression: sv.Compression,
-			Quota: event.QuotaConfig{
-				Enabled: sv.Quota.Enabled,
-				Limit:   sv.Quota.Limit,
-			},
-			Snapshots: event.SnapshotConfig{
-				Enabled:   sv.Snapshots.Enabled,
-				Frequency: sv.Snapshots.Frequency,
-				Retention: sv.Snapshots.Retention,
-			},
-			Backups: event.BackupConfig{
-				Incremental: convertBackupSchedule(sv.Backups.Incremental),
-				Full:        convertBackupSchedule(sv.Backups.Full),
-			},
-			Defrag:    sv.Defrag,
-			NFS:       sv.NFS,
-			SMB:       sv.SMB,
-			CreatedAt: sv.CreatedAt.Format(time.RFC3339),
+			ID:          id,
+			Name:        req.Name,
+			FsUUID:      req.FsUUID,
+			Path:        subvolPath,
+			Compression: req.Compression,
+			Quota:       req.Quota,
+			Snapshots:   req.Snapshots,
+			Backups:     req.Backups,
+			Defrag:      req.Defrag,
+			NFS:         req.NFS,
+			SMB:         req.SMB,
+			CreatedAt:   time.Now().Format(time.RFC3339),
 		},
 	}
 
-	s.logger.Info("subvolume created", zap.String("id", sv.ID), zap.String("path", sv.Path))
+	s.logger.Info("subvolume created", zap.String("id", id), zap.String("path", subvolPath))
 
 	return result, nil
 }
@@ -656,7 +670,7 @@ func (s *Server) handleSubvolumeGet(ctx context.Context, data interface{}) (inte
 		return nil, fmt.Errorf("invalid request type")
 	}
 
-	sv, err := storage.GetSubvolume(s.DB, req.ID)
+	r, err := database.GetSubvolume(s.DB, req.ID)
 	if err != nil {
 		s.logger.Error("failed to get subvolume", zap.Error(err))
 		return nil, err
@@ -664,32 +678,32 @@ func (s *Server) handleSubvolumeGet(ctx context.Context, data interface{}) (inte
 
 	result := event.SubvolumeGetResponse{
 		Subvolume: event.SubvolumeInfo{
-			ID:          sv.ID,
-			Name:        sv.Name,
-			FsUUID:      sv.FsUUID,
-			Path:        sv.Path,
-			Compression: sv.Compression,
+			ID:          r.ID,
+			Name:        r.Name,
+			FsUUID:      r.FsUUID,
+			Path:        r.Path,
+			Compression: r.Compression,
 			Quota: event.QuotaConfig{
-				Enabled: sv.Quota.Enabled,
-				Limit:   sv.Quota.Limit,
+				Enabled: r.QuotaEnabled,
+				Limit:   r.QuotaLimit,
 			},
 			Snapshots: event.SnapshotConfig{
-				Enabled:   sv.Snapshots.Enabled,
-				Frequency: sv.Snapshots.Frequency,
-				Retention: sv.Snapshots.Retention,
+				Enabled:   r.SnapshotEnabled,
+				Frequency: r.SnapshotFrequency,
+				Retention: r.SnapshotRetention,
 			},
 			Backups: event.BackupConfig{
-				Incremental: convertBackupSchedule(sv.Backups.Incremental),
-				Full:        convertBackupSchedule(sv.Backups.Full),
+				Incremental: toEventBackupSchedule(r.BackupIncrementalEnabled, r.BackupIncrementalFrequency),
+				Full:        toEventBackupSchedule(r.BackupFullEnabled, r.BackupFullFrequency),
 			},
-			Defrag:    sv.Defrag,
-			NFS:       sv.NFS,
-			SMB:       sv.SMB,
-			CreatedAt: sv.CreatedAt.Format(time.RFC3339),
+			Defrag:    r.Defrag,
+			NFS:       r.NFS,
+			SMB:       r.SMB,
+			CreatedAt: r.CreatedAt.Format(time.RFC3339),
 		},
 	}
 
-	s.logger.Info("subvolume retrieved", zap.String("id", sv.ID))
+	s.logger.Info("subvolume retrieved", zap.String("id", r.ID))
 
 	return result, nil
 }
@@ -703,9 +717,18 @@ func (s *Server) handleSubvolumeDelete(ctx context.Context, data interface{}) (i
 		return nil, fmt.Errorf("invalid request type")
 	}
 
-	err := storage.DeleteSubvolume(s.DB, req.ID)
+	r, err := database.GetSubvolume(s.DB, req.ID)
 	if err != nil {
-		s.logger.Error("failed to delete subvolume", zap.Error(err))
+		return nil, err
+	}
+
+	if err := storage.DeleteSubvolumeBtrfs(r.Path); err != nil {
+		s.logger.Error("failed to delete btrfs subvolume", zap.Error(err))
+		return nil, err
+	}
+
+	if err := database.DeleteSubvolumeRecord(s.DB, req.ID); err != nil {
+		s.logger.Error("failed to remove subvolume from database", zap.Error(err))
 		return nil, err
 	}
 
@@ -714,22 +737,19 @@ func (s *Server) handleSubvolumeDelete(ctx context.Context, data interface{}) (i
 	return event.SubvolumeDeleteResponse{}, nil
 }
 
-func convertBackupSchedule(s *storage.BackupSchedule) *event.BackupSchedule {
-	if s == nil {
+func toEventBackupSchedule(enabled bool, freq string) *event.BackupSchedule {
+	if !enabled {
 		return nil
 	}
 	return &event.BackupSchedule{
-		Enabled:   s.Enabled,
-		Frequency: s.Frequency,
+		Enabled:   enabled,
+		Frequency: freq,
 	}
 }
 
-func convertToStorageBackupSchedule(s *event.BackupSchedule) *storage.BackupSchedule {
+func backupScheduleFreq(s *event.BackupSchedule) string {
 	if s == nil {
-		return nil
+		return ""
 	}
-	return &storage.BackupSchedule{
-		Enabled:   s.Enabled,
-		Frequency: s.Frequency,
-	}
+	return s.Frequency
 }

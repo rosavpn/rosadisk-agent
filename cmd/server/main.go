@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/server"
-	"rosadisk-agent/internal/storage"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 	}
 	defer logger.Sync()
 
-	db, err := storage.InitDB("/var/lib/rosadisk-agent/state.db")
+	db, err := database.InitDB("/var/lib/rosadisk-agent/state.db")
 	if err != nil {
 		logger.Fatal("failed to initialize database", zap.Error(err))
 	}
