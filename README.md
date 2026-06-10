@@ -44,6 +44,15 @@ make run
 
 The server starts on `:8080` by default.
 
+**Note:** The server requires `sudo` for btrfs disk operations. Run with:
+```bash
+sudo ./bin/server
+```
+
+### State Storage
+
+Subvolume metadata is persisted in SQLite at `/var/lib/rosadisk-agent/state.db`. The directory is created automatically on first run.
+
 ## Endpoints
 
 | Path | Method | Description |
