@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/zap"
 	"rosadisk-agent/internal/server"
+	"rosadisk-agent/internal/storage"
 )
 
 func main() {
@@ -14,7 +15,17 @@ func main() {
 	}
 	defer logger.Sync()
 
-	srv := server.NewServer(logger)
+	db, err := storage.InitDB("/var/lib/rosadisk-agent/state.db")
+	if err != nil {
+		logger.Fatal("failed to initialize database", zap.Error(err))
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("failed to close database", zap.Error(err))
+		}
+	}()
+
+	srv := server.NewServer(logger, db)
 
 	logger.Info("starting server", zap.String("addr", ":8080"))
 	if err := srv.Start(":8080"); err != nil {

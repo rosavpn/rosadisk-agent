@@ -27,6 +27,7 @@ See [Development](#development) section below.
 - Go 1.21+
 - Make
 - oapi-codegen: `go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen`
+- oapi-codegen runtime: `go get github.com/oapi-codegen/runtime`
 - pre-commit: `pip install pre-commit`
 
 ### Build
@@ -51,6 +52,11 @@ The server starts on `:8080` by default.
 | `/openapi.json` | GET | OpenAPI spec (JSON) |
 | `/openapi.yaml` | GET | OpenAPI spec (YAML) |
 | `/docs` | GET | Swagger UI |
+| `/v1/disks` | GET | List available disks |
+| `/v1/fs` | GET, POST | List/create btrfs filesystems |
+| `/v1/mounts` | GET, POST | List/mount btrfs filesystems |
+| `/v1/subvolumes` | GET, POST | List/create subvolumes |
+| `/v1/subvolumes/{id}` | GET, DELETE | Get/delete subvolume |
 
 ## Development
 
@@ -109,3 +115,14 @@ internal/
     docs.html           # Swagger UI page
 Makefile                # generate, run, build targets
 ```
+
+## Automatic Validation
+
+The generated code uses `github.com/oapi-codegen/runtime` to provide automatic request validation:
+
+- **Path parameters** — UUID format validation, type parsing (handled by `ServerInterfaceWrapper`)
+- **Request bodies** — Type-safe JSON binding to generated structs via Echo's `ctx.Bind()`
+- **Enum validation** — Generated enum types with `Valid()` method for runtime checks
+- **OpenAPI spec** — Embedded and served at `/openapi.json` and `/openapi.yaml`
+
+All API handlers implement the generated `ServerInterface`, ensuring compile-time type safety.

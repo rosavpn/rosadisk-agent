@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	_ "embed"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"go.uber.org/zap"
 	"rosadisk-agent/api"
 	"rosadisk-agent/api/gen"
@@ -20,13 +22,14 @@ var docsHTML []byte
 
 type Server struct {
 	Echo       *echo.Echo
+	DB         *sql.DB
 	dispatcher *event.Dispatcher
 	eventChan  chan event.Event
 	consumer   *event.ConsumerPool
 	logger     *zap.Logger
 }
 
-func NewServer(logger *zap.Logger) *Server {
+func NewServer(logger *zap.Logger, db *sql.DB) *Server {
 	e := echo.New()
 
 	eventChan := make(chan event.Event, 100)
@@ -35,6 +38,7 @@ func NewServer(logger *zap.Logger) *Server {
 
 	s := &Server{
 		Echo:       e,
+		DB:         db,
 		dispatcher: dispatcher,
 		eventChan:  eventChan,
 		consumer:   consumer,
@@ -66,6 +70,10 @@ func (s *Server) registerHandlers() {
 	s.dispatcher.Register(event.ActionFilesystemCreate, event.HandlerFunc(s.handleFilesystemCreate))
 	s.dispatcher.Register(event.ActionMountList, event.HandlerFunc(s.handleMountList))
 	s.dispatcher.Register(event.ActionMountCreate, event.HandlerFunc(s.handleMountCreate))
+	s.dispatcher.Register(event.ActionSubvolumeList, event.HandlerFunc(s.handleSubvolumeList))
+	s.dispatcher.Register(event.ActionSubvolumeCreate, event.HandlerFunc(s.handleSubvolumeCreate))
+	s.dispatcher.Register(event.ActionSubvolumeGet, event.HandlerFunc(s.handleSubvolumeGet))
+	s.dispatcher.Register(event.ActionSubvolumeDelete, event.HandlerFunc(s.handleSubvolumeDelete))
 	s.logger.Info("event handlers registered")
 }
 
@@ -380,4 +388,348 @@ func (s *Server) MountFilesystem(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusCreated, mountResp)
+}
+
+func (s *Server) ListSubvolumes(ctx echo.Context) error {
+	s.logger.Debug("received list subvolumes request")
+
+	resultChan := s.emitEvent(event.ActionSubvolumeList, event.SubvolumeListRequest{})
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	subvolListResp, ok := result.Data.(event.SubvolumeListResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from subvolume list handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, subvolListResp)
+}
+
+func (s *Server) CreateSubvolume(ctx echo.Context) error {
+	s.logger.Debug("received create subvolume request")
+
+	var req gen.CreateSubvolumeRequest
+	if err := ctx.Bind(&req); err != nil {
+		s.logger.Error("failed to bind request", zap.Error(err))
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
+			Error: "invalid request body",
+		})
+	}
+
+	eventReq := event.CreateSubvolumeRequest{
+		Name:        req.Name,
+		FsUUID:      req.FsUuid.String(),
+		Compression: req.Compression != nil && *req.Compression,
+		Defrag:      req.Defrag != nil && *req.Defrag,
+		NFS:         req.Nfs != nil && *req.Nfs,
+		SMB:         req.Smb != nil && *req.Smb,
+	}
+
+	if req.Quota != nil {
+		eventReq.Quota.Enabled = req.Quota.Enabled
+		if req.Quota.Limit != nil {
+			limit := int64(*req.Quota.Limit)
+			eventReq.Quota.Limit = &limit
+		}
+	}
+
+	if req.Snapshots != nil {
+		eventReq.Snapshots.Enabled = req.Snapshots.Enabled
+		if req.Snapshots.Frequency != nil {
+			eventReq.Snapshots.Frequency = string(*req.Snapshots.Frequency)
+		}
+		if req.Snapshots.Retention != nil {
+			eventReq.Snapshots.Retention = *req.Snapshots.Retention
+		}
+	}
+
+	if req.Backups != nil {
+		if req.Backups.Incremental != nil {
+			eventReq.Backups.Incremental = &event.BackupSchedule{
+				Enabled: req.Backups.Incremental.Enabled,
+			}
+			if req.Backups.Incremental.Frequency != nil {
+				eventReq.Backups.Incremental.Frequency = string(*req.Backups.Incremental.Frequency)
+			}
+		}
+		if req.Backups.Full != nil {
+			eventReq.Backups.Full = &event.BackupSchedule{
+				Enabled: req.Backups.Full.Enabled,
+			}
+			if req.Backups.Full.Frequency != nil {
+				eventReq.Backups.Full.Frequency = string(*req.Backups.Full.Frequency)
+			}
+		}
+	}
+
+	resultChan := s.emitEvent(event.ActionSubvolumeCreate, eventReq)
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	createResp, ok := result.Data.(event.CreateSubvolumeResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from subvolume create handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusCreated, createResp)
+}
+
+func (s *Server) GetSubvolume(ctx echo.Context, id openapi_types.UUID) error {
+	s.logger.Debug("received get subvolume request", zap.String("id", id.String()))
+
+	eventReq := event.SubvolumeGetRequest{
+		ID: id.String(),
+	}
+
+	resultChan := s.emitEvent(event.ActionSubvolumeGet, eventReq)
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	getResp, ok := result.Data.(event.SubvolumeGetResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from subvolume get handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, getResp)
+}
+
+func (s *Server) DeleteSubvolume(ctx echo.Context, id openapi_types.UUID) error {
+	s.logger.Debug("received delete subvolume request", zap.String("id", id.String()))
+
+	eventReq := event.SubvolumeDeleteRequest{
+		ID: id.String(),
+	}
+
+	resultChan := s.emitEvent(event.ActionSubvolumeDelete, eventReq)
+	result := <-resultChan
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) handleSubvolumeList(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling subvolume list event")
+
+	storageSubvols, err := storage.ListSubvolumes(s.DB)
+	if err != nil {
+		s.logger.Error("failed to list subvolumes", zap.Error(err))
+		return nil, err
+	}
+
+	subvolumes := make([]event.SubvolumeInfo, len(storageSubvols))
+	for i, sv := range storageSubvols {
+		subvolumes[i] = event.SubvolumeInfo{
+			ID:          sv.ID,
+			Name:        sv.Name,
+			FsUUID:      sv.FsUUID,
+			Path:        sv.Path,
+			Compression: sv.Compression,
+			Quota: event.QuotaConfig{
+				Enabled: sv.Quota.Enabled,
+				Limit:   sv.Quota.Limit,
+			},
+			Snapshots: event.SnapshotConfig{
+				Enabled:   sv.Snapshots.Enabled,
+				Frequency: sv.Snapshots.Frequency,
+				Retention: sv.Snapshots.Retention,
+			},
+			Backups: event.BackupConfig{
+				Incremental: convertBackupSchedule(sv.Backups.Incremental),
+				Full:        convertBackupSchedule(sv.Backups.Full),
+			},
+			Defrag:    sv.Defrag,
+			NFS:       sv.NFS,
+			SMB:       sv.SMB,
+			CreatedAt: sv.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	s.logger.Info("subvolume list completed", zap.Int("count", len(subvolumes)))
+
+	return event.SubvolumeListResponse{Subvolumes: subvolumes}, nil
+}
+
+func (s *Server) handleSubvolumeCreate(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling subvolume create event")
+
+	req, ok := data.(event.CreateSubvolumeRequest)
+	if !ok {
+		s.logger.Error("invalid request type for subvolume create")
+		return nil, fmt.Errorf("invalid request type")
+	}
+
+	storageReq := storage.CreateSubvolumeRequest{
+		Name:        req.Name,
+		FsUUID:      req.FsUUID,
+		Compression: req.Compression,
+		Quota: storage.QuotaConfig{
+			Enabled: req.Quota.Enabled,
+			Limit:   req.Quota.Limit,
+		},
+		Snapshots: storage.SnapshotConfig{
+			Enabled:   req.Snapshots.Enabled,
+			Frequency: req.Snapshots.Frequency,
+			Retention: req.Snapshots.Retention,
+		},
+		Backups: storage.BackupConfig{
+			Incremental: convertToStorageBackupSchedule(req.Backups.Incremental),
+			Full:        convertToStorageBackupSchedule(req.Backups.Full),
+		},
+		Defrag: req.Defrag,
+		NFS:    req.NFS,
+		SMB:    req.SMB,
+	}
+
+	sv, err := storage.CreateSubvolume(s.DB, storageReq)
+	if err != nil {
+		s.logger.Error("failed to create subvolume", zap.Error(err))
+		return nil, err
+	}
+
+	result := event.CreateSubvolumeResponse{
+		Subvolume: event.SubvolumeInfo{
+			ID:          sv.ID,
+			Name:        sv.Name,
+			FsUUID:      sv.FsUUID,
+			Path:        sv.Path,
+			Compression: sv.Compression,
+			Quota: event.QuotaConfig{
+				Enabled: sv.Quota.Enabled,
+				Limit:   sv.Quota.Limit,
+			},
+			Snapshots: event.SnapshotConfig{
+				Enabled:   sv.Snapshots.Enabled,
+				Frequency: sv.Snapshots.Frequency,
+				Retention: sv.Snapshots.Retention,
+			},
+			Backups: event.BackupConfig{
+				Incremental: convertBackupSchedule(sv.Backups.Incremental),
+				Full:        convertBackupSchedule(sv.Backups.Full),
+			},
+			Defrag:    sv.Defrag,
+			NFS:       sv.NFS,
+			SMB:       sv.SMB,
+			CreatedAt: sv.CreatedAt.Format(time.RFC3339),
+		},
+	}
+
+	s.logger.Info("subvolume created", zap.String("id", sv.ID), zap.String("path", sv.Path))
+
+	return result, nil
+}
+
+func (s *Server) handleSubvolumeGet(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling subvolume get event")
+
+	req, ok := data.(event.SubvolumeGetRequest)
+	if !ok {
+		s.logger.Error("invalid request type for subvolume get")
+		return nil, fmt.Errorf("invalid request type")
+	}
+
+	sv, err := storage.GetSubvolume(s.DB, req.ID)
+	if err != nil {
+		s.logger.Error("failed to get subvolume", zap.Error(err))
+		return nil, err
+	}
+
+	result := event.SubvolumeGetResponse{
+		Subvolume: event.SubvolumeInfo{
+			ID:          sv.ID,
+			Name:        sv.Name,
+			FsUUID:      sv.FsUUID,
+			Path:        sv.Path,
+			Compression: sv.Compression,
+			Quota: event.QuotaConfig{
+				Enabled: sv.Quota.Enabled,
+				Limit:   sv.Quota.Limit,
+			},
+			Snapshots: event.SnapshotConfig{
+				Enabled:   sv.Snapshots.Enabled,
+				Frequency: sv.Snapshots.Frequency,
+				Retention: sv.Snapshots.Retention,
+			},
+			Backups: event.BackupConfig{
+				Incremental: convertBackupSchedule(sv.Backups.Incremental),
+				Full:        convertBackupSchedule(sv.Backups.Full),
+			},
+			Defrag:    sv.Defrag,
+			NFS:       sv.NFS,
+			SMB:       sv.SMB,
+			CreatedAt: sv.CreatedAt.Format(time.RFC3339),
+		},
+	}
+
+	s.logger.Info("subvolume retrieved", zap.String("id", sv.ID))
+
+	return result, nil
+}
+
+func (s *Server) handleSubvolumeDelete(ctx context.Context, data interface{}) (interface{}, error) {
+	s.logger.Info("handling subvolume delete event")
+
+	req, ok := data.(event.SubvolumeDeleteRequest)
+	if !ok {
+		s.logger.Error("invalid request type for subvolume delete")
+		return nil, fmt.Errorf("invalid request type")
+	}
+
+	err := storage.DeleteSubvolume(s.DB, req.ID)
+	if err != nil {
+		s.logger.Error("failed to delete subvolume", zap.Error(err))
+		return nil, err
+	}
+
+	s.logger.Info("subvolume deleted", zap.String("id", req.ID))
+
+	return event.SubvolumeDeleteResponse{}, nil
+}
+
+func convertBackupSchedule(s *storage.BackupSchedule) *event.BackupSchedule {
+	if s == nil {
+		return nil
+	}
+	return &event.BackupSchedule{
+		Enabled:   s.Enabled,
+		Frequency: s.Frequency,
+	}
+}
+
+func convertToStorageBackupSchedule(s *event.BackupSchedule) *storage.BackupSchedule {
+	if s == nil {
+		return nil
+	}
+	return &storage.BackupSchedule{
+		Enabled:   s.Enabled,
+		Frequency: s.Frequency,
+	}
 }

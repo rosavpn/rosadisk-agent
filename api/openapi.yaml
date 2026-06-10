@@ -176,6 +176,116 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/subvolumes:
+    get:
+      summary: List subvolumes
+      operationId: ListSubvolumes
+      tags:
+        - subvolumes
+      responses:
+        "200":
+          description: List of subvolumes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubvolumeListResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new subvolume
+      operationId: CreateSubvolume
+      tags:
+        - subvolumes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubvolumeRequest"
+      responses:
+        "201":
+          description: Subvolume created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateSubvolumeResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/subvolumes/{id}:
+    get:
+      summary: Get subvolume details
+      operationId: GetSubvolume
+      tags:
+        - subvolumes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Subvolume details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSubvolumeResponse"
+        "404":
+          description: Subvolume not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete a subvolume
+      operationId: DeleteSubvolume
+      tags:
+        - subvolumes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Subvolume deleted successfully
+        "404":
+          description: Subvolume not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthResponse:
@@ -383,3 +493,144 @@ components:
       properties:
         mount:
           $ref: "#/components/schemas/MountInfo"
+
+    SubvolumeListResponse:
+      type: object
+      required:
+        - subvolumes
+      properties:
+        subvolumes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subvolume"
+
+    Subvolume:
+      type: object
+      required:
+        - id
+        - name
+        - fs_uuid
+        - path
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        fs_uuid:
+          type: string
+          format: uuid
+        path:
+          type: string
+        compression:
+          type: boolean
+        quota:
+          $ref: "#/components/schemas/QuotaConfig"
+        snapshots:
+          $ref: "#/components/schemas/SnapshotConfig"
+        backups:
+          $ref: "#/components/schemas/BackupConfig"
+        defrag:
+          type: boolean
+        nfs:
+          type: boolean
+        smb:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    QuotaConfig:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+        limit:
+          type: integer
+          nullable: true
+          description: Required when enabled is true
+
+    SnapshotConfig:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+        frequency:
+          type: string
+          enum: ["hourly", "daily", "weekly", "monthly"]
+        retention:
+          type: integer
+          description: Number of snapshots to keep
+
+    BackupConfig:
+      type: object
+      properties:
+        incremental:
+          $ref: "#/components/schemas/BackupSchedule"
+        full:
+          $ref: "#/components/schemas/BackupSchedule"
+
+    BackupSchedule:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+        frequency:
+          type: string
+          enum: ["daily", "weekly", "monthly"]
+
+    CreateSubvolumeRequest:
+      type: object
+      required:
+        - name
+        - fs_uuid
+      properties:
+        name:
+          type: string
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9_-]*$'
+          maxLength: 255
+        fs_uuid:
+          type: string
+          format: uuid
+          description: Parent filesystem UUID from GET /v1/fs
+        compression:
+          type: boolean
+          default: false
+        quota:
+          $ref: "#/components/schemas/QuotaConfig"
+        snapshots:
+          $ref: "#/components/schemas/SnapshotConfig"
+        backups:
+          $ref: "#/components/schemas/BackupConfig"
+        defrag:
+          type: boolean
+          default: false
+        nfs:
+          type: boolean
+          default: false
+        smb:
+          type: boolean
+          default: false
+
+    CreateSubvolumeResponse:
+      type: object
+      required:
+        - subvolume
+      properties:
+        subvolume:
+          $ref: "#/components/schemas/Subvolume"
+
+    GetSubvolumeResponse:
+      type: object
+      required:
+        - subvolume
+      properties:
+        subvolume:
+          $ref: "#/components/schemas/Subvolume"
