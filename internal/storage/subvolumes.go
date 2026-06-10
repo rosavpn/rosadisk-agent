@@ -52,6 +52,7 @@ func CreateSubvolumeBtrfs(req CreateSubvolumeBtrfsRequest) (string, error) {
 	}
 
 	if req.QuotaLimit != nil {
+		// #nosec G204 - mountpoint is from filesystem mount list
 		_ = exec.Command("btrfs", "quota", "enable", req.Mountpoint).Run()
 
 		// TODO: qgroup creation for testing
