@@ -110,9 +110,19 @@ cmd/
   server/
     main.go             # Entry point
 internal/
+  database/
+    database.go         # SQLite initialization and migrations
+    subvolumes.go       # Subvolume SQL queries
+  event/
+    types.go            # Event-driven request/response types
   server/
     server.go           # Server implementation
     docs.html           # Swagger UI page
+  storage/
+    disks.go            # Disk listing operations
+    filesystems.go      # Filesystem create/list operations
+    mounts.go           # Mount operations
+    subvolumes.go       # btrfs subvolume operations
 Makefile                # generate, run, build targets
 ```
 
