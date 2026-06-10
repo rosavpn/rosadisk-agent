@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -18,6 +19,7 @@ func TestHandleDiskList(t *testing.T) {
 	dispatcher := event.NewDispatcher(logger)
 
 	s := &Server{
+		DB:         nil,
 		dispatcher: dispatcher,
 		eventChan:  make(chan event.Event, 10),
 		logger:     logger,
@@ -46,7 +48,7 @@ func TestHandleDiskList(t *testing.T) {
 
 func TestListDisksHandler(t *testing.T) {
 	logger, _ := zap.NewProduction()
-	s := NewServer(logger)
+	s := NewServer(logger, nil)
 	defer s.Shutdown(context.Background())
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/disks", nil)
@@ -66,6 +68,7 @@ func TestEventEmission(t *testing.T) {
 	}))
 
 	s := &Server{
+		DB:         nil,
 		eventChan:  eventChan,
 		dispatcher: dispatcher,
 		logger:     logger,
