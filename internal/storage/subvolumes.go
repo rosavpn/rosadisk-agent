@@ -171,6 +171,7 @@ func CreateSubvolume(db *sql.DB, req CreateSubvolumeRequest) (*SubvolumeInfo, er
 		return nil, err
 	}
 
+	// #nosec G204 - subvolPath is validated by validateSubvolumeName()
 	cmd := exec.Command("btrfs", "subvolume", "create", subvolPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -178,23 +179,29 @@ func CreateSubvolume(db *sql.DB, req CreateSubvolumeRequest) (*SubvolumeInfo, er
 	}
 
 	if req.Compression {
+		// #nosec G204 - subvolPath is validated by validateSubvolumeName()
 		chattrCmd := exec.Command("chattr", "+c", subvolPath)
 		if _, err := chattrCmd.CombinedOutput(); err != nil {
+			// #nosec G204 - subvolPath is validated by validateSubvolumeName()
 			_ = exec.Command("btrfs", "subvolume", "delete", subvolPath).Run()
 			return nil, fmt.Errorf("failed to set compression attribute: %w", err)
 		}
 	}
 
 	if req.Quota.Enabled && req.Quota.Limit != nil {
+		// #nosec G204 - mountpoint is from filesystem mount list
 		_ = exec.Command("btrfs", "quota", "enable", mountpoint).Run()
 
 		qgroupID := fmt.Sprintf("1/0")
+		// #nosec G204 - mountpoint is from filesystem mount list
 		qgroupCmd := exec.Command("btrfs", "qgroup", "create", qgroupID, mountpoint)
 		if _, err := qgroupCmd.CombinedOutput(); err != nil {
 		}
 
+		// #nosec G204 - subvolPath is validated by validateSubvolumeName()
 		limitCmd := exec.Command("btrfs", "qgroup", "limit", fmt.Sprintf("%d", *req.Quota.Limit), subvolPath)
 		if output, err := limitCmd.CombinedOutput(); err != nil {
+			// #nosec G204 - subvolPath is validated by validateSubvolumeName()
 			_ = exec.Command("btrfs", "subvolume", "delete", subvolPath).Run()
 			return nil, fmt.Errorf("failed to set quota limit: %w, output: %s", err, string(output))
 		}
@@ -236,6 +243,7 @@ func CreateSubvolume(db *sql.DB, req CreateSubvolumeRequest) (*SubvolumeInfo, er
 		sv.Defrag, sv.NFS, sv.SMB,
 	)
 	if err != nil {
+		// #nosec G204 - subvolPath is validated by validateSubvolumeName()
 		_ = exec.Command("btrfs", "subvolume", "delete", subvolPath).Run()
 		return nil, fmt.Errorf("failed to persist subvolume: %w", err)
 	}
@@ -249,6 +257,7 @@ func DeleteSubvolume(db *sql.DB, id string) error {
 		return err
 	}
 
+	// #nosec G204 - sv.Path is from database, validated at creation time
 	cmd := exec.Command("btrfs", "subvolume", "delete", sv.Path)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
