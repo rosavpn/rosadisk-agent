@@ -33,16 +33,16 @@ type BackupConfig struct {
 }
 
 type SubvolumeInfo struct {
-	ID        string
-	Name      string
-	FsUUID    string
-	Path      string
+	ID          string
+	Name        string
+	FsUUID      string
+	Path        string
 	Compression bool
-	Quota     QuotaConfig
-	Snapshots SnapshotConfig
-	Backups   BackupConfig
-	Defrag    bool
-	NFS       bool
-	SMB       bool
-	CreatedAt time.Time
+	Quota       QuotaConfig
+	Snapshots   SnapshotConfig
+	Backups     BackupConfig
+	Defrag      bool
+	NFS         bool
+	SMB         bool
+	CreatedAt   time.Time
 }
