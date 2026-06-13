@@ -68,7 +68,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DiskListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Disk"
         "500":
           description: Internal server error
           content:
@@ -88,7 +90,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FilesystemListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Filesystem"
         "500":
           description: Internal server error
           content:
@@ -112,7 +116,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateFilesystemResponse"
+                $ref: "#/components/schemas/Filesystem"
         "400":
           description: Invalid request
           content:
@@ -138,7 +142,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MountListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/MountInfo"
         "500":
           description: Internal server error
           content:
@@ -162,7 +168,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MountResponse"
+                $ref: "#/components/schemas/MountInfo"
         "400":
           description: Invalid request
           content:
@@ -188,7 +194,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubvolumeListResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subvolume"
         "500":
           description: Internal server error
           content:
@@ -212,7 +220,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateSubvolumeResponse"
+                $ref: "#/components/schemas/Subvolume"
         "400":
           description: Invalid request
           content:
@@ -245,7 +253,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetSubvolumeResponse"
+                $ref: "#/components/schemas/Subvolume"
         "404":
           description: Subvolume not found
           content:
@@ -302,16 +310,6 @@ components:
           format: date-time
           example: "2026-05-27T00:00:00Z"
 
-    DiskListResponse:
-      type: object
-      required:
-        - disks
-      properties:
-        disks:
-          type: array
-          items:
-            $ref: "#/components/schemas/Disk"
-
     Disk:
       type: object
       required:
@@ -356,16 +354,6 @@ components:
           type: string
           description: Error message
           example: failed to list disks
-
-    FilesystemListResponse:
-      type: object
-      required:
-        - filesystems
-      properties:
-        filesystems:
-          type: array
-          items:
-            $ref: "#/components/schemas/Filesystem"
 
     Filesystem:
       type: object
@@ -425,24 +413,6 @@ components:
           enum: ["single", "raid0", "raid1"]
           example: raid1
 
-    CreateFilesystemResponse:
-      type: object
-      required:
-        - filesystem
-      properties:
-        filesystem:
-          $ref: "#/components/schemas/Filesystem"
-
-    MountListResponse:
-      type: object
-      required:
-        - mounts
-      properties:
-        mounts:
-          type: array
-          items:
-            $ref: "#/components/schemas/MountInfo"
-
     MountInfo:
       type: object
       required:
@@ -485,24 +455,6 @@ components:
           description: Filesystem UUID to mount
           pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
           example: 550e8400-e29b-41d4-a716-446655440000
-
-    MountResponse:
-      type: object
-      required:
-        - mount
-      properties:
-        mount:
-          $ref: "#/components/schemas/MountInfo"
-
-    SubvolumeListResponse:
-      type: object
-      required:
-        - subvolumes
-      properties:
-        subvolumes:
-          type: array
-          items:
-            $ref: "#/components/schemas/Subvolume"
 
     Subvolume:
       type: object
@@ -623,19 +575,3 @@ components:
           type: boolean
         smb:
           type: boolean
-
-    CreateSubvolumeResponse:
-      type: object
-      required:
-        - subvolume
-      properties:
-        subvolume:
-          $ref: "#/components/schemas/Subvolume"
-
-    GetSubvolumeResponse:
-      type: object
-      required:
-        - subvolume
-      properties:
-        subvolume:
-          $ref: "#/components/schemas/Subvolume"

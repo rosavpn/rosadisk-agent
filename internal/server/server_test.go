@@ -40,9 +40,9 @@ func TestHandleDiskList(t *testing.T) {
 	result := <-resultChan
 
 	require.NoError(t, result.Error)
-	resp, ok := result.Data.(event.DiskListResponse)
+	disks, ok := result.Data.([]event.DiskInfo)
 	require.True(t, ok)
-	assert.Greater(t, len(resp.Disks), 0, "should have at least one disk")
+	assert.Greater(t, len(disks), 0, "should have at least one disk")
 }
 
 func TestListDisksHandler(t *testing.T) {
@@ -63,7 +63,7 @@ func TestEventEmission(t *testing.T) {
 	eventChan := make(chan event.Event, 10)
 	dispatcher := event.NewDispatcher(logger)
 	dispatcher.Register(event.ActionDiskList, event.HandlerFunc(func(ctx context.Context, data interface{}) (interface{}, error) {
-		return event.DiskListResponse{Disks: []event.DiskInfo{}}, nil
+		return []event.DiskInfo{}, nil
 	}))
 
 	s := &Server{
