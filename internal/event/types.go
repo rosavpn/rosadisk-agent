@@ -60,3 +60,75 @@ type MountRequest struct {
 type MountResponse struct {
 	Mount MountInfo `json:"mount"`
 }
+
+type SubvolumeListRequest struct{}
+
+type SubvolumeInfo struct {
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	FsUUID      string         `json:"fs_uuid"`
+	Path        string         `json:"path"`
+	Compression bool           `json:"compression"`
+	Quota       QuotaConfig    `json:"quota"`
+	Snapshots   SnapshotConfig `json:"snapshots"`
+	Backups     BackupConfig   `json:"backups"`
+	Defrag      bool           `json:"defrag"`
+	NFS         bool           `json:"nfs"`
+	SMB         bool           `json:"smb"`
+	CreatedAt   string         `json:"created_at"`
+}
+
+type QuotaConfig struct {
+	Enabled bool  `json:"enabled"`
+	Limit   int64 `json:"limit,omitempty"`
+}
+
+type SnapshotConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Frequency string `json:"frequency,omitempty"`
+	Retention int    `json:"retention,omitempty"`
+}
+
+type BackupSchedule struct {
+	Enabled   bool   `json:"enabled"`
+	Frequency string `json:"frequency,omitempty"`
+}
+
+type BackupConfig struct {
+	Incremental BackupSchedule `json:"incremental"`
+	Full        BackupSchedule `json:"full"`
+}
+
+type SubvolumeListResponse struct {
+	Subvolumes []SubvolumeInfo `json:"subvolumes"`
+}
+
+type CreateSubvolumeRequest struct {
+	Name        string
+	FsUUID      string
+	Compression bool
+	Defrag      bool
+	NFS         bool
+	SMB         bool
+	Quota       QuotaConfig
+	Snapshots   SnapshotConfig
+	Backups     BackupConfig
+}
+
+type CreateSubvolumeResponse struct {
+	Subvolume SubvolumeInfo `json:"subvolume"`
+}
+
+type SubvolumeGetRequest struct {
+	ID string
+}
+
+type SubvolumeGetResponse struct {
+	Subvolume SubvolumeInfo `json:"subvolume"`
+}
+
+type SubvolumeDeleteRequest struct {
+	ID string
+}
+
+type SubvolumeDeleteResponse struct{}

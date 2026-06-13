@@ -10,6 +10,10 @@ const (
 	ActionFilesystemCreate ActionType = "filesystem:create"
 	ActionMountList        ActionType = "mount:list"
 	ActionMountCreate      ActionType = "mount:create"
+	ActionSubvolumeList    ActionType = "subvolume:list"
+	ActionSubvolumeCreate  ActionType = "subvolume:create"
+	ActionSubvolumeGet     ActionType = "subvolume:get"
+	ActionSubvolumeDelete  ActionType = "subvolume:delete"
 )
 
 type Event struct {

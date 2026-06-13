@@ -8,6 +8,7 @@ import (
 	"compress/flate"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -15,7 +16,30 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
+	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for BackupScheduleFrequency.
+const (
+	BackupScheduleFrequencyDaily   BackupScheduleFrequency = "daily"
+	BackupScheduleFrequencyMonthly BackupScheduleFrequency = "monthly"
+	BackupScheduleFrequencyWeekly  BackupScheduleFrequency = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the BackupScheduleFrequency enum.
+func (e BackupScheduleFrequency) Valid() bool {
+	switch e {
+	case BackupScheduleFrequencyDaily:
+		return true
+	case BackupScheduleFrequencyMonthly:
+		return true
+	case BackupScheduleFrequencyWeekly:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for CreateFilesystemRequestRaidProfile.
 const (
@@ -38,6 +62,45 @@ func (e CreateFilesystemRequestRaidProfile) Valid() bool {
 	}
 }
 
+// Defines values for SnapshotConfigFrequency.
+const (
+	SnapshotConfigFrequencyDaily   SnapshotConfigFrequency = "daily"
+	SnapshotConfigFrequencyHourly  SnapshotConfigFrequency = "hourly"
+	SnapshotConfigFrequencyMonthly SnapshotConfigFrequency = "monthly"
+	SnapshotConfigFrequencyWeekly  SnapshotConfigFrequency = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the SnapshotConfigFrequency enum.
+func (e SnapshotConfigFrequency) Valid() bool {
+	switch e {
+	case SnapshotConfigFrequencyDaily:
+		return true
+	case SnapshotConfigFrequencyHourly:
+		return true
+	case SnapshotConfigFrequencyMonthly:
+		return true
+	case SnapshotConfigFrequencyWeekly:
+		return true
+	default:
+		return false
+	}
+}
+
+// BackupConfig defines model for BackupConfig.
+type BackupConfig struct {
+	Full        BackupSchedule `json:"full"`
+	Incremental BackupSchedule `json:"incremental"`
+}
+
+// BackupSchedule defines model for BackupSchedule.
+type BackupSchedule struct {
+	Enabled   bool                     `json:"enabled"`
+	Frequency *BackupScheduleFrequency `json:"frequency,omitempty"`
+}
+
+// BackupScheduleFrequency defines model for BackupSchedule.Frequency.
+type BackupScheduleFrequency string
+
 // CreateFilesystemRequest defines model for CreateFilesystemRequest.
 type CreateFilesystemRequest struct {
 	// Devices List of device paths to create filesystem on
@@ -56,6 +119,26 @@ type CreateFilesystemRequestRaidProfile string
 // CreateFilesystemResponse defines model for CreateFilesystemResponse.
 type CreateFilesystemResponse struct {
 	Filesystem Filesystem `json:"filesystem"`
+}
+
+// CreateSubvolumeRequest defines model for CreateSubvolumeRequest.
+type CreateSubvolumeRequest struct {
+	Backups     BackupConfig `json:"backups"`
+	Compression bool         `json:"compression"`
+	Defrag      bool         `json:"defrag"`
+
+	// FsUuid Parent filesystem UUID from GET /v1/fs
+	FsUuid    openapi_types.UUID `json:"fs_uuid"`
+	Name      string             `json:"name"`
+	Nfs       bool               `json:"nfs"`
+	Quota     QuotaConfig        `json:"quota"`
+	Smb       bool               `json:"smb"`
+	Snapshots SnapshotConfig     `json:"snapshots"`
+}
+
+// CreateSubvolumeResponse defines model for CreateSubvolumeResponse.
+type CreateSubvolumeResponse struct {
+	Subvolume Subvolume `json:"subvolume"`
 }
 
 // Disk defines model for Disk.
@@ -113,6 +196,11 @@ type FilesystemListResponse struct {
 	Filesystems []Filesystem `json:"filesystems"`
 }
 
+// GetSubvolumeResponse defines model for GetSubvolumeResponse.
+type GetSubvolumeResponse struct {
+	Subvolume Subvolume `json:"subvolume"`
+}
+
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Status    string    `json:"status"`
@@ -153,11 +241,55 @@ type MountResponse struct {
 	Mount MountInfo `json:"mount"`
 }
 
+// QuotaConfig defines model for QuotaConfig.
+type QuotaConfig struct {
+	Enabled bool `json:"enabled"`
+
+	// Limit Required when enabled is true
+	Limit *int `json:"limit,omitempty"`
+}
+
+// SnapshotConfig defines model for SnapshotConfig.
+type SnapshotConfig struct {
+	Enabled   bool                     `json:"enabled"`
+	Frequency *SnapshotConfigFrequency `json:"frequency,omitempty"`
+
+	// Retention Number of snapshots to keep
+	Retention *int `json:"retention,omitempty"`
+}
+
+// SnapshotConfigFrequency defines model for SnapshotConfig.Frequency.
+type SnapshotConfigFrequency string
+
+// Subvolume defines model for Subvolume.
+type Subvolume struct {
+	Backups     *BackupConfig      `json:"backups,omitempty"`
+	Compression *bool              `json:"compression,omitempty"`
+	CreatedAt   time.Time          `json:"created_at"`
+	Defrag      *bool              `json:"defrag,omitempty"`
+	FsUuid      openapi_types.UUID `json:"fs_uuid"`
+	Id          openapi_types.UUID `json:"id"`
+	Name        string             `json:"name"`
+	Nfs         *bool              `json:"nfs,omitempty"`
+	Path        string             `json:"path"`
+	Quota       *QuotaConfig       `json:"quota,omitempty"`
+	Smb         *bool              `json:"smb,omitempty"`
+	Snapshots   *SnapshotConfig    `json:"snapshots,omitempty"`
+}
+
+// SubvolumeListResponse defines model for SubvolumeListResponse.
+type SubvolumeListResponse struct {
+	Subvolumes []Subvolume `json:"subvolumes"`
+}
+
 // CreateFilesystemJSONRequestBody defines body for CreateFilesystem for application/json ContentType.
 type CreateFilesystemJSONRequestBody = CreateFilesystemRequest
 
 // MountFilesystemJSONRequestBody defines body for MountFilesystem for application/json ContentType.
 type MountFilesystemJSONRequestBody = MountRequest
+
+// CreateSubvolumeJSONRequestBody defines body for CreateSubvolume for application/json ContentType.
+type CreateSubvolumeJSONRequestBody = CreateSubvolumeRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -185,6 +317,18 @@ type ServerInterface interface {
 	// Mount a btrfs filesystem by UUID
 	// (POST /v1/mounts)
 	MountFilesystem(ctx echo.Context) error
+	// List subvolumes
+	// (GET /v1/subvolumes)
+	ListSubvolumes(ctx echo.Context) error
+	// Create a new subvolume
+	// (POST /v1/subvolumes)
+	CreateSubvolume(ctx echo.Context) error
+	// Delete a subvolume
+	// (DELETE /v1/subvolumes/{id})
+	DeleteSubvolume(ctx echo.Context, id openapi_types.UUID) error
+	// Get subvolume details
+	// (GET /v1/subvolumes/{id})
+	GetSubvolume(ctx echo.Context, id openapi_types.UUID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -264,6 +408,56 @@ func (w *ServerInterfaceWrapper) MountFilesystem(ctx echo.Context) error {
 	return err
 }
 
+// ListSubvolumes converts echo context to params.
+func (w *ServerInterfaceWrapper) ListSubvolumes(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ListSubvolumes(ctx)
+	return err
+}
+
+// CreateSubvolume converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateSubvolume(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateSubvolume(ctx)
+	return err
+}
+
+// DeleteSubvolume converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteSubvolume(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteSubvolume(ctx, id)
+	return err
+}
+
+// GetSubvolume converts echo context to params.
+func (w *ServerInterfaceWrapper) GetSubvolume(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetSubvolume(ctx, id)
+	return err
+}
+
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -319,6 +513,10 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/v1/fs", wrapper.CreateFilesystem, options.OperationMiddlewares["CreateFilesystem"]...)
 	router.GET(options.BaseURL+"/v1/mounts", wrapper.ListMounts, options.OperationMiddlewares["ListMounts"]...)
 	router.POST(options.BaseURL+"/v1/mounts", wrapper.MountFilesystem, options.OperationMiddlewares["MountFilesystem"]...)
+	router.GET(options.BaseURL+"/v1/subvolumes", wrapper.ListSubvolumes, options.OperationMiddlewares["ListSubvolumes"]...)
+	router.POST(options.BaseURL+"/v1/subvolumes", wrapper.CreateSubvolume, options.OperationMiddlewares["CreateSubvolume"]...)
+	router.DELETE(options.BaseURL+"/v1/subvolumes/:id", wrapper.DeleteSubvolume, options.OperationMiddlewares["DeleteSubvolume"]...)
+	router.GET(options.BaseURL+"/v1/subvolumes/:id", wrapper.GetSubvolume, options.OperationMiddlewares["GetSubvolume"]...)
 
 }
 
@@ -327,31 +525,40 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"7Fj/j9M2FP9XLI8fYEouTmmPo791HLBOx0B8ERvohtzktTUkdrCd7grq/z7ZTpqkSdoO7hibhpDqi+3n",
-	"z/u8b37+jCORZoID1wqPP2MVLSGldvhAAtXwiCWg1kpD+hw+5qC0mcqkyEBqBnZhDCsWlUMVSZZpJjge",
-	"4wumNBJz5BagjOqlQlqgyEpG861oJDj2MFzRNEsAj9/iIIZVoGIaYq8cz0J86WGmIbUn6XUGeIyVlowv",
-	"8MbDKeNTNxl65SyVkq7NZEJnkLQBVsoht6IGAsdUUz8TwnxN6dUF8IVe4vFgNPJwRrUGaUT88Zb6nyb+",
-	"G+Lfv6yG/uWPt7DXBikpi99lUhjV23CeT6bnqJhFtxXjiwQ8ZPYQ9xPeMQh5nhqO3Dx2Qknxa0mqdHCf",
-	"WkAMEviYMwmxkVQasORpB+fldr+YvYdIG0XazqEywRW0vaOysvnrloQ5HuMfgsrtgsLngkpaC2FNSBea",
-	"c6Y+dJys3MI9VjcL0G04WZx4CK700EMzLefqTsMR7CfsYZ4nCZ2ZT1rm0GHdVMRdXnbu3N/N1gW/Pn+A",
-	"Xp+H5OGbh7/55OzimDM4TaH3CDNZqqNi6iG+SoHwsKmPimmXbyr2qUPyC/YJEONottbWQ7ZiRoSE5N7Z",
-	"6YCEp1tpjGtYgDTiurkvgDreY6Y+eCgRImsCNN+7EK6Ax0L2Ci2m65ImLyeHSd3xNctwQUexts/nTILr",
-	"93yjhh1sk9Y+77c+vNlNXbuRakV2wXkopZD9WMBMt5mzu1AKStEFNJibU5ZAbLJ1YrK4O/gQde6ULniP",
-	"GlngK+rHV9eJ6y4NByP2WnL+oYzeF74vhaYJUn1BHJLav64oznMW7yXn1avpeQPgaETgbEiID4P7M38Y",
-	"xkOf3gtP/eHw9HQ0Gg7NSQcdyR67jcGqPh2sSxWy/bFZFZTjI7Renw7EaV18F8yfgSZ62Q9PaapzF7hb",
-	"YkVnTtQsBaVpmjUXD8jg1Ccjf3DvJSFj+/8N9vBcyJRq58Hgm70HTVFAqZ/UpdETkXM95XPxX4vvjiqf",
-	"c50JxnVbqmUB2UmrTkNqkHIdSKGoSabBl8WJh3MFHRH5SkGMVEaj3mL9HYd5aYAas/Wgtxr3+tz+OLci",
-	"jw/xyosPRXghuBdWb7d0FNWm7toTvoTzenNC/PvUn19+Ptv42/HwiHE42Nw6znx7GNhrlL9hii7qO841",
-	"61iRgZrsTp5NkQJps8xcSPS8CEI0WYDlWDNtGW5OoMmzKTbXTqmcnPCEnBCjoMiA04zhMb57Qk7uOtKX",
-	"Vrng3dImdzNegFXT6E4NlGmMx/gxaJf+TT0rOLI7B4SYn0hwDY4fmmUJi+zW4L0yEMoO/RB7OwXGcrNz",
-	"sS/4YAo5wDZbjsjdfwZDzrcozGUmT1Mq13hcVEoULSH6gIDHZXrQdKGMMxRkX5pdQWGWkxJnH/9PM+CT",
-	"Z9NfXjz99WuN0OGDTR2Ls5DKIGLzQtCOko9Bo851JpkblKgo3JXesYjUjtZrmiZHaP375MnFYa01XOmg",
-	"lNhSd5sQrl9dA2+vuqsw2HZWnaqainBe9Cs3FmCt9q+Di+39xoKx0XV9AJoNX8fpU26qgLn9g1yBRK45",
-	"a1rCIqQrymwLU3V5Jeuu3Sxpn+/n/FHt0nuDzPdc8ffwbx9wUP1O/t3aog21skajqdh4OBOqwxK7L3PY",
-	"FU9Q+icRr69N5b7X4U2zWpueeNNyhvAGYfQboXbHci/QMVJ5FIFS8zxJbPkbflunWNGExUiW1H2HTun4",
-	"RRRx+LPlnL2+WeSL6vLdmzOeuCU3mC7aTcKeTGERQ/xvyhj9kCvrlM1Kb9KwJN14zmg0Rt84UTRbkv3Z",
-	"oaT0/+xwwAHdcwdt+R6arcsXg5YLWglWpPneehISEU1QDCtIRJaaHsytxR7OZYLHeKl1Ng6CxKxbCqXH",
-	"Z+SM4M3l5q8AAAD//w==",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

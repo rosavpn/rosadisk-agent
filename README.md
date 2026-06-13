@@ -27,6 +27,7 @@ See [Development](#development) section below.
 - Go 1.21+
 - Make
 - oapi-codegen: `go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen`
+- oapi-codegen runtime: `go get github.com/oapi-codegen/runtime`
 - pre-commit: `pip install pre-commit`
 
 ### Build
@@ -43,6 +44,15 @@ make run
 
 The server starts on `:8080` by default.
 
+**Note:** The server requires `sudo` for btrfs disk operations. Run with:
+```bash
+sudo ./bin/server
+```
+
+### State Storage
+
+Subvolume metadata is persisted in SQLite at `/var/lib/rosadisk-agent/state.db`. The directory is created automatically on first run.
+
 ## Endpoints
 
 | Path | Method | Description |
@@ -51,6 +61,11 @@ The server starts on `:8080` by default.
 | `/openapi.json` | GET | OpenAPI spec (JSON) |
 | `/openapi.yaml` | GET | OpenAPI spec (YAML) |
 | `/docs` | GET | Swagger UI |
+| `/v1/disks` | GET | List available disks |
+| `/v1/fs` | GET, POST | List/create btrfs filesystems |
+| `/v1/mounts` | GET, POST | List/mount btrfs filesystems |
+| `/v1/subvolumes` | GET, POST | List/create subvolumes |
+| `/v1/subvolumes/{id}` | GET, DELETE | Get/delete subvolume |
 
 ## Development
 
@@ -104,8 +119,29 @@ cmd/
   server/
     main.go             # Entry point
 internal/
+  database/
+    database.go         # SQLite initialization and migrations
+    subvolumes.go       # Subvolume SQL queries
+  event/
+    types.go            # Event-driven request/response types
   server/
     server.go           # Server implementation
     docs.html           # Swagger UI page
+  storage/
+    disks.go            # Disk listing operations
+    filesystems.go      # Filesystem create/list operations
+    mounts.go           # Mount operations
+    subvolumes.go       # btrfs subvolume operations
 Makefile                # generate, run, build targets
 ```
+
+## Automatic Validation
+
+The generated code uses `github.com/oapi-codegen/runtime` to provide automatic request validation:
+
+- **Path parameters** — UUID format validation, type parsing (handled by `ServerInterfaceWrapper`)
+- **Request bodies** — Type-safe JSON binding to generated structs via Echo's `ctx.Bind()`
+- **Enum validation** — Generated enum types with `Valid()` method for runtime checks
+- **OpenAPI spec** — Embedded and served at `/openapi.json` and `/openapi.yaml`
+
+All API handlers implement the generated `ServerInterface`, ensuring compile-time type safety.

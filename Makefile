@@ -4,7 +4,7 @@ generate:
 	@echo "Generating code from OpenAPI spec..."
 	@go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen \
 		-package gen \
-		-generate types,server,spec \
+		-generate types,echo-server,spec \
 		-o api/gen/server.gen.go \
 		api/openapi.yaml
 
