@@ -11,10 +11,6 @@ type DiskInfo struct {
 	FsType *string `json:"fstype"`
 }
 
-type DiskListResponse struct {
-	Disks []DiskInfo `json:"disks"`
-}
-
 type FilesystemListRequest struct{}
 
 type FilesystemInfo struct {
@@ -25,18 +21,10 @@ type FilesystemInfo struct {
 	RaidProfile string   `json:"raid_profile"`
 }
 
-type FilesystemListResponse struct {
-	Filesystems []FilesystemInfo `json:"filesystems"`
-}
-
 type CreateFilesystemRequest struct {
 	Devices     []string `json:"devices"`
 	Label       string   `json:"label"`
 	RaidProfile string   `json:"raid_profile"`
-}
-
-type CreateFilesystemResponse struct {
-	Filesystem FilesystemInfo `json:"filesystem"`
 }
 
 type MountListRequest struct{}
@@ -49,16 +37,8 @@ type MountInfo struct {
 	Used       uint64   `json:"used"`
 }
 
-type MountListResponse struct {
-	Mounts []MountInfo `json:"mounts"`
-}
-
 type MountRequest struct {
 	UUID string `json:"uuid"`
-}
-
-type MountResponse struct {
-	Mount MountInfo `json:"mount"`
 }
 
 type SubvolumeListRequest struct{}
@@ -99,10 +79,6 @@ type BackupConfig struct {
 	Full        BackupSchedule `json:"full"`
 }
 
-type SubvolumeListResponse struct {
-	Subvolumes []SubvolumeInfo `json:"subvolumes"`
-}
-
 type CreateSubvolumeRequest struct {
 	Name        string
 	FsUUID      string
@@ -115,20 +91,10 @@ type CreateSubvolumeRequest struct {
 	Backups     BackupConfig
 }
 
-type CreateSubvolumeResponse struct {
-	Subvolume SubvolumeInfo `json:"subvolume"`
-}
-
 type SubvolumeGetRequest struct {
 	ID string
-}
-
-type SubvolumeGetResponse struct {
-	Subvolume SubvolumeInfo `json:"subvolume"`
 }
 
 type SubvolumeDeleteRequest struct {
 	ID string
 }
-
-type SubvolumeDeleteResponse struct{}

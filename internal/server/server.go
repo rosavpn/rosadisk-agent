@@ -102,7 +102,7 @@ func (s *Server) handleDiskList(ctx context.Context, data interface{}) (interfac
 
 	s.logger.Info("disk list completed", zap.Int("count", len(disks)))
 
-	return event.DiskListResponse{Disks: disks}, nil
+	return disks, nil
 }
 
 func (s *Server) handleFilesystemList(ctx context.Context, data interface{}) (interface{}, error) {
@@ -127,7 +127,7 @@ func (s *Server) handleFilesystemList(ctx context.Context, data interface{}) (in
 
 	s.logger.Info("filesystem list completed", zap.Int("count", len(filesystems)))
 
-	return event.FilesystemListResponse{Filesystems: filesystems}, nil
+	return filesystems, nil
 }
 
 func (s *Server) handleFilesystemCreate(ctx context.Context, data interface{}) (interface{}, error) {
@@ -145,14 +145,12 @@ func (s *Server) handleFilesystemCreate(ctx context.Context, data interface{}) (
 		return nil, err
 	}
 
-	result := event.CreateFilesystemResponse{
-		Filesystem: event.FilesystemInfo{
-			UUID:        fs.UUID,
-			Label:       fs.Label,
-			Size:        fs.Size,
-			Devices:     fs.Devices,
-			RaidProfile: fs.RaidProfile,
-		},
+	result := event.FilesystemInfo{
+		UUID:        fs.UUID,
+		Label:       fs.Label,
+		Size:        fs.Size,
+		Devices:     fs.Devices,
+		RaidProfile: fs.RaidProfile,
 	}
 
 	s.logger.Info("filesystem created", zap.String("uuid", fs.UUID))
@@ -182,7 +180,7 @@ func (s *Server) handleMountList(ctx context.Context, data interface{}) (interfa
 
 	s.logger.Info("mount list completed", zap.Int("count", len(mounts)))
 
-	return event.MountListResponse{Mounts: mounts}, nil
+	return mounts, nil
 }
 
 func (s *Server) handleMountCreate(ctx context.Context, data interface{}) (interface{}, error) {
@@ -200,14 +198,12 @@ func (s *Server) handleMountCreate(ctx context.Context, data interface{}) (inter
 		return nil, err
 	}
 
-	result := event.MountResponse{
-		Mount: event.MountInfo{
-			UUID:       mount.UUID,
-			Label:      mount.Label,
-			Mountpoint: mount.Mountpoint,
-			Devices:    mount.Devices,
-			Used:       mount.Used,
-		},
+	result := event.MountInfo{
+		UUID:       mount.UUID,
+		Label:      mount.Label,
+		Mountpoint: mount.Mountpoint,
+		Devices:    mount.Devices,
+		Used:       mount.Used,
 	}
 
 	s.logger.Info("filesystem mounted", zap.String("uuid", mount.UUID), zap.String("mountpoint", mount.Mountpoint))
@@ -263,7 +259,7 @@ func (s *Server) ListDisks(ctx echo.Context) error {
 		})
 	}
 
-	diskListResp, ok := result.Data.(event.DiskListResponse)
+	disks, ok := result.Data.([]event.DiskInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from disk list handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -271,7 +267,7 @@ func (s *Server) ListDisks(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, diskListResp)
+	return ctx.JSON(http.StatusOK, disks)
 }
 
 func (s *Server) ListFilesystems(ctx echo.Context) error {
@@ -286,7 +282,7 @@ func (s *Server) ListFilesystems(ctx echo.Context) error {
 		})
 	}
 
-	fsListResp, ok := result.Data.(event.FilesystemListResponse)
+	filesystems, ok := result.Data.([]event.FilesystemInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from filesystem list handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -294,7 +290,7 @@ func (s *Server) ListFilesystems(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, fsListResp)
+	return ctx.JSON(http.StatusOK, filesystems)
 }
 
 func (s *Server) CreateFilesystem(ctx echo.Context) error {
@@ -323,7 +319,7 @@ func (s *Server) CreateFilesystem(ctx echo.Context) error {
 		})
 	}
 
-	createResp, ok := result.Data.(event.CreateFilesystemResponse)
+	fs, ok := result.Data.(event.FilesystemInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from filesystem create handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -331,7 +327,7 @@ func (s *Server) CreateFilesystem(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusCreated, createResp)
+	return ctx.JSON(http.StatusCreated, fs)
 }
 
 func (s *Server) ListMounts(ctx echo.Context) error {
@@ -346,7 +342,7 @@ func (s *Server) ListMounts(ctx echo.Context) error {
 		})
 	}
 
-	mountListResp, ok := result.Data.(event.MountListResponse)
+	mounts, ok := result.Data.([]event.MountInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from mount list handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -354,7 +350,7 @@ func (s *Server) ListMounts(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, mountListResp)
+	return ctx.JSON(http.StatusOK, mounts)
 }
 
 func (s *Server) MountFilesystem(ctx echo.Context) error {
@@ -381,7 +377,7 @@ func (s *Server) MountFilesystem(ctx echo.Context) error {
 		})
 	}
 
-	mountResp, ok := result.Data.(event.MountResponse)
+	mount, ok := result.Data.(event.MountInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from mount create handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -389,7 +385,7 @@ func (s *Server) MountFilesystem(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusCreated, mountResp)
+	return ctx.JSON(http.StatusCreated, mount)
 }
 
 func (s *Server) ListSubvolumes(ctx echo.Context) error {
@@ -404,7 +400,7 @@ func (s *Server) ListSubvolumes(ctx echo.Context) error {
 		})
 	}
 
-	subvolListResp, ok := result.Data.(event.SubvolumeListResponse)
+	subvolumes, ok := result.Data.([]event.SubvolumeInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from subvolume list handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -412,7 +408,7 @@ func (s *Server) ListSubvolumes(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, subvolListResp)
+	return ctx.JSON(http.StatusOK, subvolumes)
 }
 
 func (s *Server) CreateSubvolume(ctx echo.Context) error {
@@ -488,7 +484,7 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 		})
 	}
 
-	createResp, ok := result.Data.(event.CreateSubvolumeResponse)
+	subvol, ok := result.Data.(event.SubvolumeInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from subvolume create handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -496,7 +492,7 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusCreated, createResp)
+	return ctx.JSON(http.StatusCreated, subvol)
 }
 
 func (s *Server) GetSubvolume(ctx echo.Context, id openapi_types.UUID) error {
@@ -515,7 +511,7 @@ func (s *Server) GetSubvolume(ctx echo.Context, id openapi_types.UUID) error {
 		})
 	}
 
-	getResp, ok := result.Data.(event.SubvolumeGetResponse)
+	subvol, ok := result.Data.(event.SubvolumeInfo)
 	if !ok {
 		s.logger.Error("unexpected response type from subvolume get handler")
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -523,7 +519,7 @@ func (s *Server) GetSubvolume(ctx echo.Context, id openapi_types.UUID) error {
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, getResp)
+	return ctx.JSON(http.StatusOK, subvol)
 }
 
 func (s *Server) DeleteSubvolume(ctx echo.Context, id openapi_types.UUID) error {
@@ -584,7 +580,7 @@ func (s *Server) handleSubvolumeList(ctx context.Context, data interface{}) (int
 
 	s.logger.Info("subvolume list completed", zap.Int("count", len(subvolumes)))
 
-	return event.SubvolumeListResponse{Subvolumes: subvolumes}, nil
+	return subvolumes, nil
 }
 
 func (s *Server) handleSubvolumeCreate(ctx context.Context, data interface{}) (interface{}, error) {
@@ -641,21 +637,19 @@ func (s *Server) handleSubvolumeCreate(ctx context.Context, data interface{}) (i
 		return nil, err
 	}
 
-	result := event.CreateSubvolumeResponse{
-		Subvolume: event.SubvolumeInfo{
-			ID:          id,
-			Name:        req.Name,
-			FsUUID:      req.FsUUID,
-			Path:        subvolPath,
-			Compression: req.Compression,
-			Quota:       req.Quota,
-			Snapshots:   req.Snapshots,
-			Backups:     req.Backups,
-			Defrag:      req.Defrag,
-			NFS:         req.NFS,
-			SMB:         req.SMB,
-			CreatedAt:   time.Now().Format(time.RFC3339),
-		},
+	result := event.SubvolumeInfo{
+		ID:          id,
+		Name:        req.Name,
+		FsUUID:      req.FsUUID,
+		Path:        subvolPath,
+		Compression: req.Compression,
+		Quota:       req.Quota,
+		Snapshots:   req.Snapshots,
+		Backups:     req.Backups,
+		Defrag:      req.Defrag,
+		NFS:         req.NFS,
+		SMB:         req.SMB,
+		CreatedAt:   time.Now().Format(time.RFC3339),
 	}
 
 	s.logger.Info("subvolume created", zap.String("id", id), zap.String("path", subvolPath))
@@ -678,31 +672,29 @@ func (s *Server) handleSubvolumeGet(ctx context.Context, data interface{}) (inte
 		return nil, err
 	}
 
-	result := event.SubvolumeGetResponse{
-		Subvolume: event.SubvolumeInfo{
-			ID:          r.ID,
-			Name:        r.Name,
-			FsUUID:      r.FsUUID,
-			Path:        r.Path,
-			Compression: r.Compression,
-			Quota: event.QuotaConfig{
-				Enabled: r.QuotaEnabled,
-				Limit:   r.QuotaLimit,
-			},
-			Snapshots: event.SnapshotConfig{
-				Enabled:   r.SnapshotEnabled,
-				Frequency: r.SnapshotFrequency,
-				Retention: r.SnapshotRetention,
-			},
-			Backups: event.BackupConfig{
-				Incremental: toEventBackupSchedule(r.BackupIncrementalEnabled, r.BackupIncrementalFrequency),
-				Full:        toEventBackupSchedule(r.BackupFullEnabled, r.BackupFullFrequency),
-			},
-			Defrag:    r.Defrag,
-			NFS:       r.NFS,
-			SMB:       r.SMB,
-			CreatedAt: r.CreatedAt.Format(time.RFC3339),
+	result := event.SubvolumeInfo{
+		ID:          r.ID,
+		Name:        r.Name,
+		FsUUID:      r.FsUUID,
+		Path:        r.Path,
+		Compression: r.Compression,
+		Quota: event.QuotaConfig{
+			Enabled: r.QuotaEnabled,
+			Limit:   r.QuotaLimit,
 		},
+		Snapshots: event.SnapshotConfig{
+			Enabled:   r.SnapshotEnabled,
+			Frequency: r.SnapshotFrequency,
+			Retention: r.SnapshotRetention,
+		},
+		Backups: event.BackupConfig{
+			Incremental: toEventBackupSchedule(r.BackupIncrementalEnabled, r.BackupIncrementalFrequency),
+			Full:        toEventBackupSchedule(r.BackupFullEnabled, r.BackupFullFrequency),
+		},
+		Defrag:    r.Defrag,
+		NFS:       r.NFS,
+		SMB:       r.SMB,
+		CreatedAt: r.CreatedAt.Format(time.RFC3339),
 	}
 
 	s.logger.Info("subvolume retrieved", zap.String("id", r.ID))
@@ -736,7 +728,7 @@ func (s *Server) handleSubvolumeDelete(ctx context.Context, data interface{}) (i
 
 	s.logger.Info("subvolume deleted", zap.String("id", req.ID))
 
-	return event.SubvolumeDeleteResponse{}, nil
+	return nil, nil
 }
 
 func quotaEnabledLimit(enabled bool, limit int64) int64 {

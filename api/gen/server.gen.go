@@ -116,11 +116,6 @@ type CreateFilesystemRequest struct {
 // CreateFilesystemRequestRaidProfile RAID profile (single, raid0, raid1)
 type CreateFilesystemRequestRaidProfile string
 
-// CreateFilesystemResponse defines model for CreateFilesystemResponse.
-type CreateFilesystemResponse struct {
-	Filesystem Filesystem `json:"filesystem"`
-}
-
 // CreateSubvolumeRequest defines model for CreateSubvolumeRequest.
 type CreateSubvolumeRequest struct {
 	Backups     BackupConfig `json:"backups"`
@@ -134,11 +129,6 @@ type CreateSubvolumeRequest struct {
 	Quota     QuotaConfig        `json:"quota"`
 	Smb       bool               `json:"smb"`
 	Snapshots SnapshotConfig     `json:"snapshots"`
-}
-
-// CreateSubvolumeResponse defines model for CreateSubvolumeResponse.
-type CreateSubvolumeResponse struct {
-	Subvolume Subvolume `json:"subvolume"`
 }
 
 // Disk defines model for Disk.
@@ -160,11 +150,6 @@ type Disk struct {
 
 	// Vendor Device vendor
 	Vendor *string `json:"vendor,omitempty"`
-}
-
-// DiskListResponse defines model for DiskListResponse.
-type DiskListResponse struct {
-	Disks []Disk `json:"disks"`
 }
 
 // ErrorResponse defines model for ErrorResponse.
@@ -191,16 +176,6 @@ type Filesystem struct {
 	Uuid string `json:"uuid"`
 }
 
-// FilesystemListResponse defines model for FilesystemListResponse.
-type FilesystemListResponse struct {
-	Filesystems []Filesystem `json:"filesystems"`
-}
-
-// GetSubvolumeResponse defines model for GetSubvolumeResponse.
-type GetSubvolumeResponse struct {
-	Subvolume Subvolume `json:"subvolume"`
-}
-
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Status    string    `json:"status"`
@@ -225,20 +200,10 @@ type MountInfo struct {
 	Uuid string `json:"uuid"`
 }
 
-// MountListResponse defines model for MountListResponse.
-type MountListResponse struct {
-	Mounts []MountInfo `json:"mounts"`
-}
-
 // MountRequest defines model for MountRequest.
 type MountRequest struct {
 	// Uuid Filesystem UUID to mount
 	Uuid string `json:"uuid"`
-}
-
-// MountResponse defines model for MountResponse.
-type MountResponse struct {
-	Mount MountInfo `json:"mount"`
 }
 
 // QuotaConfig defines model for QuotaConfig.
@@ -275,11 +240,6 @@ type Subvolume struct {
 	Quota       *QuotaConfig       `json:"quota,omitempty"`
 	Smb         *bool              `json:"smb,omitempty"`
 	Snapshots   *SnapshotConfig    `json:"snapshots,omitempty"`
-}
-
-// SubvolumeListResponse defines model for SubvolumeListResponse.
-type SubvolumeListResponse struct {
-	Subvolumes []Subvolume `json:"subvolumes"`
 }
 
 // CreateFilesystemJSONRequestBody defines body for CreateFilesystem for application/json ContentType.
@@ -525,40 +485,38 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
