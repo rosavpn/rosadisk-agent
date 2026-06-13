@@ -550,7 +550,6 @@ components:
           type: boolean
         limit:
           type: integer
-          nullable: true
           description: Required when enabled is true
 
     SnapshotConfig:
@@ -569,6 +568,9 @@ components:
 
     BackupConfig:
       type: object
+      required:
+        - incremental
+        - full
       properties:
         incremental:
           $ref: "#/components/schemas/BackupSchedule"
@@ -595,6 +597,9 @@ components:
         - defrag
         - nfs
         - smb
+        - quota
+        - snapshots
+        - backups
       properties:
         name:
           type: string

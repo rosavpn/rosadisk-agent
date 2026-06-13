@@ -426,6 +426,31 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 		})
 	}
 
+	var limit int64
+	if req.Quota.Limit != nil {
+		limit = int64(*req.Quota.Limit)
+	}
+
+	var snapshotFreq string
+	if req.Snapshots.Frequency != nil {
+		snapshotFreq = string(*req.Snapshots.Frequency)
+	}
+
+	var snapshotRetention int
+	if req.Snapshots.Retention != nil {
+		snapshotRetention = *req.Snapshots.Retention
+	}
+
+	var incFreq string
+	if req.Backups.Incremental.Frequency != nil {
+		incFreq = string(*req.Backups.Incremental.Frequency)
+	}
+
+	var fullFreq string
+	if req.Backups.Full.Frequency != nil {
+		fullFreq = string(*req.Backups.Full.Frequency)
+	}
+
 	eventReq := event.CreateSubvolumeRequest{
 		Name:        req.Name,
 		FsUUID:      req.FsUuid.String(),
@@ -433,43 +458,25 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 		Defrag:      req.Defrag,
 		NFS:         req.Nfs,
 		SMB:         req.Smb,
-	}
-
-	if req.Quota != nil {
-		eventReq.Quota.Enabled = req.Quota.Enabled
-		if req.Quota.Limit != nil {
-			limit := int64(*req.Quota.Limit)
-			eventReq.Quota.Limit = &limit
-		}
-	}
-
-	if req.Snapshots != nil {
-		eventReq.Snapshots.Enabled = req.Snapshots.Enabled
-		if req.Snapshots.Frequency != nil {
-			eventReq.Snapshots.Frequency = string(*req.Snapshots.Frequency)
-		}
-		if req.Snapshots.Retention != nil {
-			eventReq.Snapshots.Retention = *req.Snapshots.Retention
-		}
-	}
-
-	if req.Backups != nil {
-		if req.Backups.Incremental != nil {
-			eventReq.Backups.Incremental = &event.BackupSchedule{
-				Enabled: req.Backups.Incremental.Enabled,
-			}
-			if req.Backups.Incremental.Frequency != nil {
-				eventReq.Backups.Incremental.Frequency = string(*req.Backups.Incremental.Frequency)
-			}
-		}
-		if req.Backups.Full != nil {
-			eventReq.Backups.Full = &event.BackupSchedule{
-				Enabled: req.Backups.Full.Enabled,
-			}
-			if req.Backups.Full.Frequency != nil {
-				eventReq.Backups.Full.Frequency = string(*req.Backups.Full.Frequency)
-			}
-		}
+		Quota: event.QuotaConfig{
+			Enabled: req.Quota.Enabled,
+			Limit:   limit,
+		},
+		Snapshots: event.SnapshotConfig{
+			Enabled:   req.Snapshots.Enabled,
+			Frequency: snapshotFreq,
+			Retention: snapshotRetention,
+		},
+		Backups: event.BackupConfig{
+			Incremental: event.BackupSchedule{
+				Enabled:   req.Backups.Incremental.Enabled,
+				Frequency: incFreq,
+			},
+			Full: event.BackupSchedule{
+				Enabled:   req.Backups.Full.Enabled,
+				Frequency: fullFreq,
+			},
+		},
 	}
 
 	resultChan := s.emitEvent(event.ActionSubvolumeCreate, eventReq)
@@ -595,16 +602,11 @@ func (s *Server) handleSubvolumeCreate(ctx context.Context, data interface{}) (i
 		return nil, err
 	}
 
-	var quotaLimit *int64
-	if req.Quota.Enabled {
-		quotaLimit = req.Quota.Limit
-	}
-
 	subvolPath, err := storage.CreateSubvolumeBtrfs(storage.CreateSubvolumeBtrfsRequest{
 		Mountpoint:  mountpoint,
 		Name:        req.Name,
 		Compression: req.Compression,
-		QuotaLimit:  quotaLimit,
+		QuotaLimit:  req.Quota.Limit,
 	})
 	if err != nil {
 		s.logger.Error("failed to create btrfs subvolume", zap.Error(err))
@@ -624,10 +626,10 @@ func (s *Server) handleSubvolumeCreate(ctx context.Context, data interface{}) (i
 		SnapshotEnabled:            req.Snapshots.Enabled,
 		SnapshotFrequency:          req.Snapshots.Frequency,
 		SnapshotRetention:          req.Snapshots.Retention,
-		BackupIncrementalEnabled:   req.Backups.Incremental != nil && req.Backups.Incremental.Enabled,
-		BackupIncrementalFrequency: backupScheduleFreq(req.Backups.Incremental),
-		BackupFullEnabled:          req.Backups.Full != nil && req.Backups.Full.Enabled,
-		BackupFullFrequency:        backupScheduleFreq(req.Backups.Full),
+		BackupIncrementalEnabled:   req.Backups.Incremental.Enabled,
+		BackupIncrementalFrequency: req.Backups.Incremental.Frequency,
+		BackupFullEnabled:          req.Backups.Full.Enabled,
+		BackupFullFrequency:        req.Backups.Full.Frequency,
 		Defrag:                     req.Defrag,
 		NFS:                        req.NFS,
 		SMB:                        req.SMB,
@@ -737,19 +739,9 @@ func (s *Server) handleSubvolumeDelete(ctx context.Context, data interface{}) (i
 	return event.SubvolumeDeleteResponse{}, nil
 }
 
-func toEventBackupSchedule(enabled bool, freq string) *event.BackupSchedule {
-	if !enabled {
-		return nil
-	}
-	return &event.BackupSchedule{
+func toEventBackupSchedule(enabled bool, freq string) event.BackupSchedule {
+	return event.BackupSchedule{
 		Enabled:   enabled,
 		Frequency: freq,
 	}
-}
-
-func backupScheduleFreq(s *event.BackupSchedule) string {
-	if s == nil {
-		return ""
-	}
-	return s.Frequency
 }

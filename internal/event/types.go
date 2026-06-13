@@ -79,8 +79,8 @@ type SubvolumeInfo struct {
 }
 
 type QuotaConfig struct {
-	Enabled bool   `json:"enabled"`
-	Limit   *int64 `json:"limit,omitempty"`
+	Enabled bool  `json:"enabled"`
+	Limit   int64 `json:"limit,omitempty"`
 }
 
 type SnapshotConfig struct {
@@ -95,8 +95,8 @@ type BackupSchedule struct {
 }
 
 type BackupConfig struct {
-	Incremental *BackupSchedule `json:"incremental,omitempty"`
-	Full        *BackupSchedule `json:"full,omitempty"`
+	Incremental BackupSchedule `json:"incremental"`
+	Full        BackupSchedule `json:"full"`
 }
 
 type SubvolumeListResponse struct {

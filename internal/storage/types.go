@@ -13,7 +13,7 @@ type DiskInfo struct {
 
 type QuotaConfig struct {
 	Enabled bool
-	Limit   *int64
+	Limit   int64
 }
 
 type SnapshotConfig struct {

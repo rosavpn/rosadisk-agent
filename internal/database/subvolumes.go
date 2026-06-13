@@ -13,7 +13,7 @@ type SubvolumeRecord struct {
 	Path                       string
 	Compression                bool
 	QuotaEnabled               bool
-	QuotaLimit                 *int64
+	QuotaLimit                 int64
 	SnapshotEnabled            bool
 	SnapshotFrequency          string
 	SnapshotRetention          int
@@ -34,7 +34,7 @@ type CreateSubvolumeRecord struct {
 	Path                       string
 	Compression                bool
 	QuotaEnabled               bool
-	QuotaLimit                 *int64
+	QuotaLimit                 int64
 	SnapshotEnabled            bool
 	SnapshotFrequency          string
 	SnapshotRetention          int
@@ -65,7 +65,6 @@ func ListSubvolumes(db *sql.DB) ([]SubvolumeRecord, error) {
 	var records []SubvolumeRecord
 	for rows.Next() {
 		var r SubvolumeRecord
-		var quotaLimit sql.NullInt64
 		var snapshotFreq sql.NullString
 		var snapshotRetention sql.NullInt64
 		var backupIncEnabled sql.NullBool
@@ -76,7 +75,7 @@ func ListSubvolumes(db *sql.DB) ([]SubvolumeRecord, error) {
 
 		err := rows.Scan(
 			&r.ID, &r.Name, &r.FsUUID, &r.Path, &r.Compression,
-			&r.QuotaEnabled, &quotaLimit,
+			&r.QuotaEnabled, &r.QuotaLimit,
 			&r.SnapshotEnabled, &snapshotFreq, &snapshotRetention,
 			&backupIncEnabled, &backupIncFreq,
 			&backupFullEnabled, &backupFullFreq,
@@ -86,9 +85,6 @@ func ListSubvolumes(db *sql.DB) ([]SubvolumeRecord, error) {
 			return nil, fmt.Errorf("failed to scan subvolume: %w", err)
 		}
 
-		if quotaLimit.Valid {
-			r.QuotaLimit = &quotaLimit.Int64
-		}
 		if snapshotFreq.Valid {
 			r.SnapshotFrequency = snapshotFreq.String
 		}
@@ -117,7 +113,6 @@ func ListSubvolumes(db *sql.DB) ([]SubvolumeRecord, error) {
 
 func GetSubvolume(db *sql.DB, id string) (*SubvolumeRecord, error) {
 	var r SubvolumeRecord
-	var quotaLimit sql.NullInt64
 	var snapshotFreq sql.NullString
 	var snapshotRetention sql.NullInt64
 	var backupIncEnabled sql.NullBool
@@ -136,7 +131,7 @@ func GetSubvolume(db *sql.DB, id string) (*SubvolumeRecord, error) {
 		WHERE id = ?
 	`, id).Scan(
 		&r.ID, &r.Name, &r.FsUUID, &r.Path, &r.Compression,
-		&r.QuotaEnabled, &quotaLimit,
+		&r.QuotaEnabled, &r.QuotaLimit,
 		&r.SnapshotEnabled, &snapshotFreq, &snapshotRetention,
 		&backupIncEnabled, &backupIncFreq,
 		&backupFullEnabled, &backupFullFreq,
@@ -149,9 +144,6 @@ func GetSubvolume(db *sql.DB, id string) (*SubvolumeRecord, error) {
 		return nil, fmt.Errorf("failed to query subvolume: %w", err)
 	}
 
-	if quotaLimit.Valid {
-		r.QuotaLimit = &quotaLimit.Int64
-	}
 	if snapshotFreq.Valid {
 		r.SnapshotFrequency = snapshotFreq.String
 	}

@@ -11,7 +11,7 @@ type CreateSubvolumeBtrfsRequest struct {
 	Mountpoint  string
 	Name        string
 	Compression bool
-	QuotaLimit  *int64
+	QuotaLimit  int64
 }
 
 func validateSubvolumeName(name string) error {
@@ -51,19 +51,12 @@ func CreateSubvolumeBtrfs(req CreateSubvolumeBtrfsRequest) (string, error) {
 		}
 	}
 
-	if req.QuotaLimit != nil {
+	if req.QuotaLimit > 0 {
 		// #nosec G204 - mountpoint is from filesystem mount list
 		_ = exec.Command("btrfs", "quota", "enable", req.Mountpoint).Run()
 
-		// TODO: qgroup creation for testing
-		// qgroupID := fmt.Sprintf("1/0")
-		// #nosec G204 - mountpoint is from filesystem mount list
-		// qgroupCmd := exec.Command("btrfs", "qgroup", "create", qgroupID, req.Mountpoint)
-		// if _, err := qgroupCmd.CombinedOutput(); err != nil {
-		// }
-
 		// #nosec G204 - subvolPath is validated by validateSubvolumeName()
-		limitCmd := exec.Command("btrfs", "qgroup", "limit", fmt.Sprintf("%d", *req.QuotaLimit), subvolPath)
+		limitCmd := exec.Command("btrfs", "qgroup", "limit", fmt.Sprintf("%d", req.QuotaLimit), subvolPath)
 		if output, err := limitCmd.CombinedOutput(); err != nil {
 			// #nosec G204 - subvolPath is validated by validateSubvolumeName()
 			_ = exec.Command("btrfs", "subvolume", "delete", subvolPath).Run()
