@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.10.0...v0.11.0) (2026-06-13)
+
+
+### Features
+
+* add subvolume endpoints with SQLite state storage ([7405d5e](https://github.com/rosavpn/rosadisk-agent/commit/7405d5e78ab12bb8870decbed28affe2dcd711f4))
+* add subvolume endpoints with SQLite state storage ([803dcee](https://github.com/rosavpn/rosadisk-agent/commit/803dcee2604d51d40b23dfe4648f2b58a7451de0))
+
+
+### Bug Fixes
+
+* add nosec G204 comment to btrfs quota enable command ([df4bd55](https://github.com/rosavpn/rosadisk-agent/commit/df4bd558747d8a1553dc665599b8af3310928324))
+* add nosec G204 comments to subvolumes.go exec.Command calls ([a0d24ad](https://github.com/rosavpn/rosadisk-agent/commit/a0d24ad7152471d95fead6bd87507b9aa379f2d7))
+* remove unused database/sql import in server_test.go ([c86b23f](https://github.com/rosavpn/rosadisk-agent/commit/c86b23fef4ec3b15d7833b5d9f824639e00132e5))
+* respect quota.enabled flag when creating subvolume ([9e7b74d](https://github.com/rosavpn/rosadisk-agent/commit/9e7b74d069c1d0d6ac9b5f8ad9e0027d5e196d2e))
+* update server tests for new DB parameter ([8dbc0ee](https://github.com/rosavpn/rosadisk-agent/commit/8dbc0eea76c7d07712a69132772c8faaea195832))
+
 ## [0.10.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.9.0...v0.10.0) (2026-06-09)
 
 
