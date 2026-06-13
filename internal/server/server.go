@@ -606,7 +606,7 @@ func (s *Server) handleSubvolumeCreate(ctx context.Context, data interface{}) (i
 		Mountpoint:  mountpoint,
 		Name:        req.Name,
 		Compression: req.Compression,
-		QuotaLimit:  req.Quota.Limit,
+		QuotaLimit:  quotaEnabledLimit(req.Quota.Enabled, req.Quota.Limit),
 	})
 	if err != nil {
 		s.logger.Error("failed to create btrfs subvolume", zap.Error(err))
@@ -737,6 +737,13 @@ func (s *Server) handleSubvolumeDelete(ctx context.Context, data interface{}) (i
 	s.logger.Info("subvolume deleted", zap.String("id", req.ID))
 
 	return event.SubvolumeDeleteResponse{}, nil
+}
+
+func quotaEnabledLimit(enabled bool, limit int64) int64 {
+	if !enabled {
+		return 0
+	}
+	return limit
 }
 
 func toEventBackupSchedule(enabled bool, freq string) event.BackupSchedule {
