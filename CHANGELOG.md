@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.11.0...v0.12.0) (2026-06-15)
+
+
+### Features
+
+* add global configuration system with time-based job scheduling ([980e0db](https://github.com/rosavpn/rosadisk-agent/commit/980e0db8aaabccaf0f786bffb4ac6d5fbd68e8b2))
+* add global configuration system with time-based job scheduling ([98514e0](https://github.com/rosavpn/rosadisk-agent/commit/98514e06926881a45cebdb34e3cc93eb175933aa))
+
+
+### Bug Fixes
+
+* enable all job schedule options by default ([b342176](https://github.com/rosavpn/rosadisk-agent/commit/b34217601e2d28fb0bc68be6824e590b20656602))
+
 ## [0.11.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.10.0...v0.11.0) (2026-06-13)
 
 
