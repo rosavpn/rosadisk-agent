@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/server"
 )
@@ -18,6 +19,10 @@ func main() {
 	db, err := database.InitDB("/var/lib/rosadisk-agent/state.db")
 	if err != nil {
 		logger.Fatal("failed to initialize database", zap.Error(err))
+	}
+
+	if err := config.InitConfig(db); err != nil {
+		logger.Fatal("failed to initialize global config", zap.Error(err))
 	}
 	defer func() {
 		if err := db.Close(); err != nil {

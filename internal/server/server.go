@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 	"rosadisk-agent/api"
 	"rosadisk-agent/api/gen"
+	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/event"
 	"rosadisk-agent/internal/storage"
@@ -245,6 +246,44 @@ func (s *Server) GetOpenAPIYAML(ctx echo.Context) error {
 
 func (s *Server) GetDocs(ctx echo.Context) error {
 	return ctx.HTML(http.StatusOK, string(docsHTML))
+}
+
+func (s *Server) GetConfig(ctx echo.Context) error {
+	cfg, err := config.GetConfig(s.DB)
+	if err != nil {
+		s.logger.Error("failed to get config", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "failed to read configuration",
+		})
+	}
+	return ctx.JSON(http.StatusOK, cfg)
+}
+
+func (s *Server) UpdateConfig(ctx echo.Context) error {
+	var req gen.GlobalConfig
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
+			Error: "invalid request body",
+		})
+	}
+
+	internal := config.GlobalConfig{
+		Backup:   config.JobSchedule{Enabled: req.Backup.Enabled, Time: req.Backup.Time},
+		Snapshot: config.JobSchedule{Enabled: req.Snapshot.Enabled, Time: req.Snapshot.Time},
+		Defrag:   config.JobSchedule{Enabled: req.Defrag.Enabled, Time: req.Defrag.Time},
+		Scrub:    config.JobSchedule{Enabled: req.Scrub.Enabled, Time: req.Scrub.Time},
+		Balance:  config.JobSchedule{Enabled: req.Balance.Enabled, Time: req.Balance.Time},
+	}
+
+	if err := config.SaveConfig(s.DB, internal); err != nil {
+		s.logger.Error("failed to save config", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "failed to save configuration",
+		})
+	}
+
+	s.logger.Info("configuration updated")
+	return ctx.JSON(http.StatusOK, internal)
 }
 
 func (s *Server) ListDisks(ctx echo.Context) error {

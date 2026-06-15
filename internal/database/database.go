@@ -61,6 +61,10 @@ func runMigrations(db *sql.DB) error {
 			smb INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS global_config (
+			id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+			data TEXT NOT NULL DEFAULT '{}'
+		)`,
 	}
 
 	for i, migration := range migrations {
