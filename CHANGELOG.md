@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.12.0...v0.13.0) (2026-06-16)
+
+
+### Features
+
+* add scheduler event emitter for background jobs ([e1cc286](https://github.com/rosavpn/rosadisk-agent/commit/e1cc2866606fe500cf6294fb72aa2eaf938a35cb))
+* add scheduler event emitter for background jobs ([5693cd0](https://github.com/rosavpn/rosadisk-agent/commit/5693cd002f9b00675e6d8103affd7ebe4bdb702f))
+
 ## [0.12.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.11.0...v0.12.0) (2026-06-15)
 
 
