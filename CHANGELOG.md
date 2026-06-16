@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.13.0...v0.14.0) (2026-06-16)
+
+
+### Features
+
+* restructure global config with VolumeJobSchedule and DiskJobSchedule ([1474626](https://github.com/rosavpn/rosadisk-agent/commit/147462635cfd1e218f400b73cc59f2d54f1e6863))
+* restructure global config with VolumeJobSchedule and DiskJobSchedule ([0457496](https://github.com/rosavpn/rosadisk-agent/commit/0457496f1bdbdf29a1339bd0ac6df2a9c6b587ac))
+
 ## [0.13.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.12.0...v0.13.0) (2026-06-16)
 
 
