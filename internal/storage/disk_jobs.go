@@ -19,7 +19,7 @@ func StartScrub(mountpoint string) (string, error) {
 	}
 
 	// #nosec G204 - mountpoint is validated by validateMountpoint()
-	cmd := exec.Command("btrfs", "scrub", "start", mountpoint)
+	cmd := exec.Command("btrfs", "scrub", "start", "-B", "-d", mountpoint)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("scrub failed on %s: %w, output: %s", mountpoint, err, string(output))
