@@ -65,6 +65,18 @@ func runMigrations(db *sql.DB) error {
 			id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
 			data TEXT NOT NULL DEFAULT '{}'
 		)`,
+		`CREATE TABLE IF NOT EXISTS job_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			job_type TEXT NOT NULL,
+			mountpoint TEXT,
+			subvolume_id TEXT,
+			target_name TEXT,
+			status TEXT NOT NULL,
+			output TEXT,
+			error TEXT,
+			started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			completed_at DATETIME
+		)`,
 	}
 
 	for i, migration := range migrations {
