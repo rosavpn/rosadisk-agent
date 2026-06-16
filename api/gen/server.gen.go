@@ -62,24 +62,108 @@ func (e CreateFilesystemRequestRaidProfile) Valid() bool {
 	}
 }
 
+// Defines values for DiskJobScheduleDayOfWeek.
+const (
+	DiskJobScheduleDayOfWeekFriday    DiskJobScheduleDayOfWeek = "friday"
+	DiskJobScheduleDayOfWeekMonday    DiskJobScheduleDayOfWeek = "monday"
+	DiskJobScheduleDayOfWeekSaturday  DiskJobScheduleDayOfWeek = "saturday"
+	DiskJobScheduleDayOfWeekSunday    DiskJobScheduleDayOfWeek = "sunday"
+	DiskJobScheduleDayOfWeekThursday  DiskJobScheduleDayOfWeek = "thursday"
+	DiskJobScheduleDayOfWeekTuesday   DiskJobScheduleDayOfWeek = "tuesday"
+	DiskJobScheduleDayOfWeekWednesday DiskJobScheduleDayOfWeek = "wednesday"
+)
+
+// Valid indicates whether the value is a known member of the DiskJobScheduleDayOfWeek enum.
+func (e DiskJobScheduleDayOfWeek) Valid() bool {
+	switch e {
+	case DiskJobScheduleDayOfWeekFriday:
+		return true
+	case DiskJobScheduleDayOfWeekMonday:
+		return true
+	case DiskJobScheduleDayOfWeekSaturday:
+		return true
+	case DiskJobScheduleDayOfWeekSunday:
+		return true
+	case DiskJobScheduleDayOfWeekThursday:
+		return true
+	case DiskJobScheduleDayOfWeekTuesday:
+		return true
+	case DiskJobScheduleDayOfWeekWednesday:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DiskJobScheduleFrequency.
+const (
+	DiskJobScheduleFrequencyMonthly DiskJobScheduleFrequency = "monthly"
+	DiskJobScheduleFrequencyWeekly  DiskJobScheduleFrequency = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the DiskJobScheduleFrequency enum.
+func (e DiskJobScheduleFrequency) Valid() bool {
+	switch e {
+	case DiskJobScheduleFrequencyMonthly:
+		return true
+	case DiskJobScheduleFrequencyWeekly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SnapshotConfigFrequency.
 const (
-	SnapshotConfigFrequencyDaily   SnapshotConfigFrequency = "daily"
-	SnapshotConfigFrequencyHourly  SnapshotConfigFrequency = "hourly"
-	SnapshotConfigFrequencyMonthly SnapshotConfigFrequency = "monthly"
-	SnapshotConfigFrequencyWeekly  SnapshotConfigFrequency = "weekly"
+	Daily   SnapshotConfigFrequency = "daily"
+	Hourly  SnapshotConfigFrequency = "hourly"
+	Monthly SnapshotConfigFrequency = "monthly"
+	Weekly  SnapshotConfigFrequency = "weekly"
 )
 
 // Valid indicates whether the value is a known member of the SnapshotConfigFrequency enum.
 func (e SnapshotConfigFrequency) Valid() bool {
 	switch e {
-	case SnapshotConfigFrequencyDaily:
+	case Daily:
 		return true
-	case SnapshotConfigFrequencyHourly:
+	case Hourly:
 		return true
-	case SnapshotConfigFrequencyMonthly:
+	case Monthly:
 		return true
-	case SnapshotConfigFrequencyWeekly:
+	case Weekly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VolumeJobScheduleWeeklyDay.
+const (
+	VolumeJobScheduleWeeklyDayFriday    VolumeJobScheduleWeeklyDay = "friday"
+	VolumeJobScheduleWeeklyDayMonday    VolumeJobScheduleWeeklyDay = "monday"
+	VolumeJobScheduleWeeklyDaySaturday  VolumeJobScheduleWeeklyDay = "saturday"
+	VolumeJobScheduleWeeklyDaySunday    VolumeJobScheduleWeeklyDay = "sunday"
+	VolumeJobScheduleWeeklyDayThursday  VolumeJobScheduleWeeklyDay = "thursday"
+	VolumeJobScheduleWeeklyDayTuesday   VolumeJobScheduleWeeklyDay = "tuesday"
+	VolumeJobScheduleWeeklyDayWednesday VolumeJobScheduleWeeklyDay = "wednesday"
+)
+
+// Valid indicates whether the value is a known member of the VolumeJobScheduleWeeklyDay enum.
+func (e VolumeJobScheduleWeeklyDay) Valid() bool {
+	switch e {
+	case VolumeJobScheduleWeeklyDayFriday:
+		return true
+	case VolumeJobScheduleWeeklyDayMonday:
+		return true
+	case VolumeJobScheduleWeeklyDaySaturday:
+		return true
+	case VolumeJobScheduleWeeklyDaySunday:
+		return true
+	case VolumeJobScheduleWeeklyDayThursday:
+		return true
+	case VolumeJobScheduleWeeklyDayTuesday:
+		return true
+	case VolumeJobScheduleWeeklyDayWednesday:
 		return true
 	default:
 		return false
@@ -152,6 +236,26 @@ type Disk struct {
 	Vendor *string `json:"vendor,omitempty"`
 }
 
+// DiskJobSchedule defines model for DiskJobSchedule.
+type DiskJobSchedule struct {
+	// DayOfMonth Day of month for monthly frequency
+	DayOfMonth *int `json:"day_of_month,omitempty"`
+
+	// DayOfWeek Day of week for weekly frequency
+	DayOfWeek *DiskJobScheduleDayOfWeek `json:"day_of_week,omitempty"`
+	Enabled   bool                      `json:"enabled"`
+	Frequency DiskJobScheduleFrequency  `json:"frequency"`
+
+	// Time 24-hour format HH:MM
+	Time string `json:"time"`
+}
+
+// DiskJobScheduleDayOfWeek Day of week for weekly frequency
+type DiskJobScheduleDayOfWeek string
+
+// DiskJobScheduleFrequency defines model for DiskJobSchedule.Frequency.
+type DiskJobScheduleFrequency string
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	// Error Error message
@@ -178,25 +282,17 @@ type Filesystem struct {
 
 // GlobalConfig defines model for GlobalConfig.
 type GlobalConfig struct {
-	Backup   JobSchedule `json:"backup"`
-	Balance  JobSchedule `json:"balance"`
-	Defrag   JobSchedule `json:"defrag"`
-	Scrub    JobSchedule `json:"scrub"`
-	Snapshot JobSchedule `json:"snapshot"`
+	Backup   VolumeJobSchedule `json:"backup"`
+	Balance  DiskJobSchedule   `json:"balance"`
+	Defrag   VolumeJobSchedule `json:"defrag"`
+	Scrub    DiskJobSchedule   `json:"scrub"`
+	Snapshot VolumeJobSchedule `json:"snapshot"`
 }
 
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
 	Status    string    `json:"status"`
 	Timestamp time.Time `json:"timestamp"`
-}
-
-// JobSchedule defines model for JobSchedule.
-type JobSchedule struct {
-	Enabled bool `json:"enabled"`
-
-	// Time 24-hour format HH:MM
-	Time string `json:"time"`
 }
 
 // MountInfo defines model for MountInfo.
@@ -258,6 +354,26 @@ type Subvolume struct {
 	Smb         *bool              `json:"smb,omitempty"`
 	Snapshots   *SnapshotConfig    `json:"snapshots,omitempty"`
 }
+
+// VolumeJobSchedule defines model for VolumeJobSchedule.
+type VolumeJobSchedule struct {
+	Enabled bool `json:"enabled"`
+
+	// HourlyMinute Minute of the hour for hourly frequency
+	HourlyMinute *int `json:"hourly_minute,omitempty"`
+
+	// MonthlyDay Day of month for monthly frequency
+	MonthlyDay *int `json:"monthly_day,omitempty"`
+
+	// Time 24-hour format HH:MM
+	Time string `json:"time"`
+
+	// WeeklyDay Day of week for weekly frequency
+	WeeklyDay *VolumeJobScheduleWeeklyDay `json:"weekly_day,omitempty"`
+}
+
+// VolumeJobScheduleWeeklyDay Day of week for weekly frequency
+type VolumeJobScheduleWeeklyDay string
 
 // UpdateConfigJSONRequestBody defines body for UpdateConfig for application/json ContentType.
 type UpdateConfigJSONRequestBody = GlobalConfig
@@ -531,41 +647,44 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

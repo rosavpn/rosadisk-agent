@@ -7,7 +7,7 @@ import (
 )
 
 func InitConfig(db *sql.DB) error {
-	_, err := db.Exec(`INSERT OR IGNORE INTO global_config (id, data) VALUES (1, ?)`,
+	_, err := db.Exec(`REPLACE INTO global_config (id, data) VALUES (1, ?)`,
 		jsonString(DefaultConfig()),
 	)
 	if err != nil {
