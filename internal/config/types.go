@@ -1,24 +1,65 @@
 package config
 
 type GlobalConfig struct {
-	Backup   JobSchedule `json:"backup"`
-	Snapshot JobSchedule `json:"snapshot"`
-	Defrag   JobSchedule `json:"defrag"`
-	Scrub    JobSchedule `json:"scrub"`
-	Balance  JobSchedule `json:"balance"`
+	Backup   VolumeJobSchedule `json:"backup"`
+	Snapshot VolumeJobSchedule `json:"snapshot"`
+	Defrag   VolumeJobSchedule `json:"defrag"`
+	Scrub    DiskJobSchedule   `json:"scrub"`
+	Balance  DiskJobSchedule   `json:"balance"`
 }
 
-type JobSchedule struct {
-	Time    string `json:"time"`
-	Enabled bool   `json:"enabled"`
+type VolumeJobSchedule struct {
+	Enabled      bool   `json:"enabled"`
+	Time         string `json:"time"`
+	HourlyMinute int    `json:"hourly_minute"`
+	WeeklyDay    string `json:"weekly_day"`
+	MonthlyDay   int    `json:"monthly_day"`
+}
+
+type DiskJobSchedule struct {
+	Enabled    bool   `json:"enabled"`
+	Frequency  string `json:"frequency"`
+	Time       string `json:"time"`
+	DayOfWeek  string `json:"day_of_week"`
+	DayOfMonth int    `json:"day_of_month"`
 }
 
 func DefaultConfig() GlobalConfig {
 	return GlobalConfig{
-		Backup:   JobSchedule{Enabled: true, Time: "04:00"},
-		Snapshot: JobSchedule{Enabled: true, Time: "03:00"},
-		Defrag:   JobSchedule{Enabled: true, Time: "04:00"},
-		Scrub:    JobSchedule{Enabled: true, Time: "05:00"},
-		Balance:  JobSchedule{Enabled: true, Time: "01:00"},
+		Backup: VolumeJobSchedule{
+			Enabled:      true,
+			Time:         "03:00",
+			HourlyMinute: 0,
+			WeeklyDay:    "monday",
+			MonthlyDay:   1,
+		},
+		Snapshot: VolumeJobSchedule{
+			Enabled:      true,
+			Time:         "03:00",
+			HourlyMinute: 0,
+			WeeklyDay:    "monday",
+			MonthlyDay:   1,
+		},
+		Defrag: VolumeJobSchedule{
+			Enabled:      true,
+			Time:         "04:00",
+			HourlyMinute: 0,
+			WeeklyDay:    "monday",
+			MonthlyDay:   1,
+		},
+		Scrub: DiskJobSchedule{
+			Enabled:    true,
+			Frequency:  "monthly",
+			Time:       "05:00",
+			DayOfWeek:  "sunday",
+			DayOfMonth: 1,
+		},
+		Balance: DiskJobSchedule{
+			Enabled:    true,
+			Frequency:  "monthly",
+			Time:       "05:00",
+			DayOfWeek:  "sunday",
+			DayOfMonth: 1,
+		},
 	}
 }

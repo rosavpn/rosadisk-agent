@@ -277,11 +277,11 @@ func (s *Server) UpdateConfig(ctx echo.Context) error {
 	}
 
 	internal := config.GlobalConfig{
-		Backup:   config.JobSchedule{Enabled: req.Backup.Enabled, Time: req.Backup.Time},
-		Snapshot: config.JobSchedule{Enabled: req.Snapshot.Enabled, Time: req.Snapshot.Time},
-		Defrag:   config.JobSchedule{Enabled: req.Defrag.Enabled, Time: req.Defrag.Time},
-		Scrub:    config.JobSchedule{Enabled: req.Scrub.Enabled, Time: req.Scrub.Time},
-		Balance:  config.JobSchedule{Enabled: req.Balance.Enabled, Time: req.Balance.Time},
+		Backup:   toVolumeJobSchedule(req.Backup),
+		Snapshot: toVolumeJobSchedule(req.Snapshot),
+		Defrag:   toVolumeJobSchedule(req.Defrag),
+		Scrub:    toDiskJobSchedule(req.Scrub),
+		Balance:  toDiskJobSchedule(req.Balance),
 	}
 
 	if err := config.SaveConfig(s.DB, internal); err != nil {
@@ -791,4 +791,36 @@ func toEventBackupSchedule(enabled bool, freq string) event.BackupSchedule {
 		Enabled:   enabled,
 		Frequency: freq,
 	}
+}
+
+func toVolumeJobSchedule(v gen.VolumeJobSchedule) config.VolumeJobSchedule {
+	c := config.VolumeJobSchedule{
+		Enabled: v.Enabled,
+		Time:    v.Time,
+	}
+	if v.HourlyMinute != nil {
+		c.HourlyMinute = *v.HourlyMinute
+	}
+	if v.WeeklyDay != nil {
+		c.WeeklyDay = string(*v.WeeklyDay)
+	}
+	if v.MonthlyDay != nil {
+		c.MonthlyDay = *v.MonthlyDay
+	}
+	return c
+}
+
+func toDiskJobSchedule(d gen.DiskJobSchedule) config.DiskJobSchedule {
+	c := config.DiskJobSchedule{
+		Enabled:   d.Enabled,
+		Frequency: string(d.Frequency),
+		Time:      d.Time,
+	}
+	if d.DayOfWeek != nil {
+		c.DayOfWeek = string(*d.DayOfWeek)
+	}
+	if d.DayOfMonth != nil {
+		c.DayOfMonth = *d.DayOfMonth
+	}
+	return c
 }

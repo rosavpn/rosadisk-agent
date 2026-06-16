@@ -636,17 +636,17 @@ components:
         - balance
       properties:
         backup:
-          $ref: "#/components/schemas/JobSchedule"
+          $ref: "#/components/schemas/VolumeJobSchedule"
         snapshot:
-          $ref: "#/components/schemas/JobSchedule"
+          $ref: "#/components/schemas/VolumeJobSchedule"
         defrag:
-          $ref: "#/components/schemas/JobSchedule"
+          $ref: "#/components/schemas/VolumeJobSchedule"
         scrub:
-          $ref: "#/components/schemas/JobSchedule"
+          $ref: "#/components/schemas/DiskJobSchedule"
         balance:
-          $ref: "#/components/schemas/JobSchedule"
+          $ref: "#/components/schemas/DiskJobSchedule"
 
-    JobSchedule:
+    VolumeJobSchedule:
       type: object
       required:
         - enabled
@@ -657,5 +657,51 @@ components:
         time:
           type: string
           pattern: '^\d{2}:\d{2}$'
-          example: "04:00"
+          example: "03:00"
           description: 24-hour format HH:MM
+        hourly_minute:
+          type: integer
+          minimum: 0
+          maximum: 59
+          example: 0
+          description: Minute of the hour for hourly frequency
+        weekly_day:
+          type: string
+          enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+          example: monday
+          description: Day of week for weekly frequency
+        monthly_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+          example: 1
+          description: Day of month for monthly frequency
+
+    DiskJobSchedule:
+      type: object
+      required:
+        - enabled
+        - frequency
+        - time
+      properties:
+        enabled:
+          type: boolean
+        frequency:
+          type: string
+          enum: ["weekly", "monthly"]
+        time:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          example: "05:00"
+          description: 24-hour format HH:MM
+        day_of_week:
+          type: string
+          enum: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+          example: sunday
+          description: Day of week for weekly frequency
+        day_of_month:
+          type: integer
+          minimum: 1
+          maximum: 31
+          example: 1
+          description: Day of month for monthly frequency

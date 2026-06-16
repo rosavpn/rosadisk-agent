@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
@@ -18,7 +19,7 @@ type Scheduler struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	wg        sync.WaitGroup
-	lastRun   map[event.ActionType]string
+	lastRun   map[string]string
 }
 
 func NewScheduler(db *sql.DB, eventChan chan<- event.Event, logger *zap.Logger) *Scheduler {
@@ -29,7 +30,7 @@ func NewScheduler(db *sql.DB, eventChan chan<- event.Event, logger *zap.Logger) 
 		logger:    logger,
 		ctx:       ctx,
 		cancel:    cancel,
-		lastRun:   make(map[event.ActionType]string),
+		lastRun:   make(map[string]string),
 	}
 }
 
@@ -70,25 +71,92 @@ func (s *Scheduler) checkAndEmit() {
 		return
 	}
 
-	now := time.Now().Format("15:04")
+	now := time.Now()
 
-	jobs := []struct {
-		action  event.ActionType
-		enabled bool
-		time    string
-		data    interface{}
-	}{
-		{event.ActionBackup, cfg.Backup.Enabled, cfg.Backup.Time, event.BackupRequest{}},
-		{event.ActionSnapshot, cfg.Snapshot.Enabled, cfg.Snapshot.Time, event.SnapshotRequest{}},
-		{event.ActionDefrag, cfg.Defrag.Enabled, cfg.Defrag.Time, event.DefragRequest{}},
-		{event.ActionScrub, cfg.Scrub.Enabled, cfg.Scrub.Time, event.ScrubRequest{}},
-		{event.ActionBalance, cfg.Balance.Enabled, cfg.Balance.Time, event.BalanceRequest{}},
+	s.checkVolumeJob(event.ActionBackup, cfg.Backup, now)
+	s.checkVolumeJob(event.ActionSnapshot, cfg.Snapshot, now)
+	s.checkVolumeJob(event.ActionDefrag, cfg.Defrag, now)
+	s.checkDiskJob(event.ActionScrub, cfg.Scrub, now)
+	s.checkDiskJob(event.ActionBalance, cfg.Balance, now)
+}
+
+func (s *Scheduler) checkVolumeJob(action event.ActionType, schedule config.VolumeJobSchedule, now time.Time) {
+	if !schedule.Enabled {
+		return
 	}
 
-	for _, job := range jobs {
-		if job.enabled && job.time == now && s.lastRun[job.action] != now {
-			s.lastRun[job.action] = now
-			s.emitEvent(job.action, job.data)
+	minute := now.Minute()
+	timeHHMM := now.Format("15:04")
+	weekday := now.Weekday().String()
+	day := now.Day()
+
+	weekdayLower := toLowerWeekday(weekday)
+
+	if schedule.HourlyMinute == minute {
+		key := fmt.Sprintf("%s:hourly:%d", action, now.Hour())
+		if s.lastRun[key] != now.Format("2006-01-02") {
+			s.lastRun[key] = now.Format("2006-01-02")
+			s.emitEvent(action, event.BackupRequest{})
+			return
+		}
+	}
+
+	if schedule.Time == timeHHMM {
+		dailyKey := fmt.Sprintf("%s:daily", action)
+		if s.lastRun[dailyKey] != now.Format("2006-01-02") {
+			s.lastRun[dailyKey] = now.Format("2006-01-02")
+			s.emitEvent(action, event.BackupRequest{})
+			return
+		}
+	}
+
+	if schedule.Time == timeHHMM && schedule.WeeklyDay != "" && schedule.WeeklyDay == weekdayLower {
+		_, weekNum := now.ISOWeek()
+		weeklyKey := fmt.Sprintf("%s:weekly:%d", action, weekNum)
+		if s.lastRun[weeklyKey] != now.Format("2006") {
+			s.lastRun[weeklyKey] = now.Format("2006")
+			s.emitEvent(action, event.BackupRequest{})
+			return
+		}
+	}
+
+	if schedule.Time == timeHHMM && schedule.MonthlyDay > 0 && schedule.MonthlyDay == day {
+		monthlyKey := fmt.Sprintf("%s:monthly", action)
+		if s.lastRun[monthlyKey] != now.Format("2006-01") {
+			s.lastRun[monthlyKey] = now.Format("2006-01")
+			s.emitEvent(action, event.BackupRequest{})
+			return
+		}
+	}
+}
+
+func (s *Scheduler) checkDiskJob(action event.ActionType, schedule config.DiskJobSchedule, now time.Time) {
+	if !schedule.Enabled {
+		return
+	}
+
+	timeHHMM := now.Format("15:04")
+	weekday := toLowerWeekday(now.Weekday().String())
+	day := now.Day()
+
+	switch schedule.Frequency {
+	case "weekly":
+		if schedule.Time == timeHHMM && schedule.DayOfWeek == weekday {
+			_, weekNum := now.ISOWeek()
+			key := fmt.Sprintf("%s:weekly:%d", action, weekNum)
+			if s.lastRun[key] != now.Format("2006") {
+				s.lastRun[key] = now.Format("2006")
+				s.emitEvent(action, event.ScrubRequest{})
+			}
+		}
+
+	case "monthly":
+		if schedule.Time == timeHHMM && schedule.DayOfMonth == day {
+			key := fmt.Sprintf("%s:monthly", action)
+			if s.lastRun[key] != now.Format("2006-01") {
+				s.lastRun[key] = now.Format("2006-01")
+				s.emitEvent(action, event.ScrubRequest{})
+			}
 		}
 	}
 }
@@ -121,4 +189,20 @@ func (s *Scheduler) emitEvent(action event.ActionType, data interface{}) {
 	case <-s.ctx.Done():
 		return
 	}
+}
+
+func toLowerWeekday(goWeekday string) string {
+	m := map[string]string{
+		"Monday":    "monday",
+		"Tuesday":   "tuesday",
+		"Wednesday": "wednesday",
+		"Thursday":  "thursday",
+		"Friday":    "friday",
+		"Saturday":  "saturday",
+		"Sunday":    "sunday",
+	}
+	if v, ok := m[goWeekday]; ok {
+		return v
+	}
+	return ""
 }
