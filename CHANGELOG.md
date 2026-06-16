@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.14.0...v0.15.0) (2026-06-16)
+
+
+### Features
+
+* add scrub/balance implementation and job logs endpoints ([200a514](https://github.com/rosavpn/rosadisk-agent/commit/200a51417059254ba8ba7f4ab8c8880964b59598))
+* add scrub/balance implementation and job logs endpoints ([8f35ca3](https://github.com/rosavpn/rosadisk-agent/commit/8f35ca30065ebd8d90e96888886a7456d5d15e2e))
+
+
+### Bug Fixes
+
+* add -B (foreground) and -d (per-device stats) flags to scrub command ([7c2bdfc](https://github.com/rosavpn/rosadisk-agent/commit/7c2bdfc6f6b2862fe4c85e5ecc7ae9e1149c3e8f))
+* add gosec G204 annotations to disk_jobs.go ([e25f317](https://github.com/rosavpn/rosadisk-agent/commit/e25f317d918db075afa4c83307212ef5cf255134))
+
 ## [0.14.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.13.0...v0.14.0) (2026-06-16)
 
 
