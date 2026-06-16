@@ -18,6 +18,7 @@ func StartScrub(mountpoint string) (string, error) {
 		return "", err
 	}
 
+	// #nosec G204 - mountpoint is validated by validateMountpoint()
 	cmd := exec.Command("btrfs", "scrub", "start", mountpoint)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -32,6 +33,7 @@ func StartBalance(mountpoint string) (string, error) {
 		return "", err
 	}
 
+	// #nosec G204 - mountpoint is validated by validateMountpoint()
 	cmd := exec.Command("btrfs", "balance", "start", "-dusage=50", "-musage=50", mountpoint)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
