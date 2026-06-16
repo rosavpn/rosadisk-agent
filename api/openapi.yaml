@@ -344,6 +344,77 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/job_logs:
+    get:
+      summary: List job logs
+      operationId: ListJobLogs
+      tags:
+        - jobs
+      parameters:
+        - name: job_type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of job logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobLogSummary"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/job_logs/{id}:
+    get:
+      summary: Get a job log with output and error
+      operationId: GetJobLog
+      tags:
+        - jobs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Job log details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobLogDetail"
+        "404":
+          description: Job log not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthResponse:
@@ -705,3 +776,44 @@ components:
           maximum: 31
           example: 1
           description: Day of month for monthly frequency
+
+    JobLogSummary:
+      type: object
+      required:
+        - id
+        - job_type
+        - status
+        - started_at
+      properties:
+        id:
+          type: integer
+        job_type:
+          type: string
+        mountpoint:
+          type: string
+          nullable: true
+        subvolume_id:
+          type: string
+          nullable: true
+        target_name:
+          type: string
+          nullable: true
+        status:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    JobLogDetail:
+      allOf:
+        - $ref: "#/components/schemas/JobLogSummary"
+        - type: object
+          properties:
+            output:
+              type: string
+            error:
+              type: string

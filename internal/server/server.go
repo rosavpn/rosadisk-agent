@@ -257,6 +257,61 @@ func (s *Server) GetDocs(ctx echo.Context) error {
 	return ctx.HTML(http.StatusOK, string(docsHTML))
 }
 
+func (s *Server) ListJobLogs(ctx echo.Context, params gen.ListJobLogsParams) error {
+	limit := 50
+	if params.Limit != nil && *params.Limit > 0 {
+		limit = *params.Limit
+	}
+
+	jobType := ""
+	if params.JobType != nil {
+		jobType = *params.JobType
+	}
+	status := ""
+	if params.Status != nil {
+		status = *params.Status
+	}
+
+	records, err := database.ListJobLogs(s.DB, jobType, status, limit)
+	if err != nil {
+		s.logger.Error("failed to list job logs", zap.Error(err))
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "failed to list job logs",
+		})
+	}
+
+	summaries := make([]gen.JobLogSummary, len(records))
+	for i, r := range records {
+		summaries[i] = toJobLogSummary(r)
+	}
+
+	return ctx.JSON(http.StatusOK, summaries)
+}
+
+func (s *Server) GetJobLog(ctx echo.Context, id int) error {
+	record, err := database.GetJobLog(s.DB, int64(id))
+	if err != nil {
+		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{
+			Error: "job log not found",
+		})
+	}
+
+	detail := gen.JobLogDetail{
+		CompletedAt: nilTime(record.CompletedAt),
+		Error:       nullStringPtr(record.Error),
+		Id:          int(record.ID),
+		JobType:     record.JobType,
+		Mountpoint:  nullStringPtr(record.Mountpoint),
+		Output:      nullStringPtr(record.Output),
+		StartedAt:   record.StartedAt,
+		Status:      record.Status,
+		SubvolumeId: nullStringPtr(record.SubvolumeID),
+		TargetName:  nullStringPtr(record.TargetName),
+	}
+
+	return ctx.JSON(http.StatusOK, detail)
+}
+
 func (s *Server) GetConfig(ctx echo.Context) error {
 	cfg, err := config.GetConfig(s.DB)
 	if err != nil {
@@ -784,6 +839,33 @@ func quotaEnabledLimit(enabled bool, limit int64) int64 {
 		return 0
 	}
 	return limit
+}
+
+func toJobLogSummary(r database.JobLogRecord) gen.JobLogSummary {
+	return gen.JobLogSummary{
+		CompletedAt: nilTime(r.CompletedAt),
+		Id:          int(r.ID),
+		JobType:     r.JobType,
+		Mountpoint:  nullStringPtr(r.Mountpoint),
+		StartedAt:   r.StartedAt,
+		Status:      r.Status,
+		SubvolumeId: nullStringPtr(r.SubvolumeID),
+		TargetName:  nullStringPtr(r.TargetName),
+	}
+}
+
+func nilTime(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
+}
+
+func nullStringPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func toEventBackupSchedule(enabled bool, freq string) event.BackupSchedule {
