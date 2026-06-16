@@ -61,6 +61,10 @@ func (s *Server) Start(addr string) error {
 	return s.Echo.Start(addr)
 }
 
+func (s *Server) EventChan() chan<- event.Event {
+	return s.eventChan
+}
+
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.consumer.Stop()
 	close(s.eventChan)
@@ -77,6 +81,11 @@ func (s *Server) registerHandlers() {
 	s.dispatcher.Register(event.ActionSubvolumeCreate, event.HandlerFunc(s.handleSubvolumeCreate))
 	s.dispatcher.Register(event.ActionSubvolumeGet, event.HandlerFunc(s.handleSubvolumeGet))
 	s.dispatcher.Register(event.ActionSubvolumeDelete, event.HandlerFunc(s.handleSubvolumeDelete))
+	s.dispatcher.Register(event.ActionBackup, event.HandlerFunc(s.handleBackup))
+	s.dispatcher.Register(event.ActionSnapshot, event.HandlerFunc(s.handleSnapshot))
+	s.dispatcher.Register(event.ActionDefrag, event.HandlerFunc(s.handleDefrag))
+	s.dispatcher.Register(event.ActionScrub, event.HandlerFunc(s.handleScrub))
+	s.dispatcher.Register(event.ActionBalance, event.HandlerFunc(s.handleBalance))
 	s.logger.Info("event handlers registered")
 }
 

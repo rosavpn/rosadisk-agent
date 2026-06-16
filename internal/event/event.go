@@ -14,6 +14,11 @@ const (
 	ActionSubvolumeCreate  ActionType = "subvolume:create"
 	ActionSubvolumeGet     ActionType = "subvolume:get"
 	ActionSubvolumeDelete  ActionType = "subvolume:delete"
+	ActionBackup           ActionType = "background:backup"
+	ActionSnapshot         ActionType = "background:snapshot"
+	ActionDefrag           ActionType = "background:defrag"
+	ActionScrub            ActionType = "background:scrub"
+	ActionBalance          ActionType = "background:balance"
 )
 
 type Event struct {
