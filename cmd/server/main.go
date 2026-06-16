@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"go.uber.org/zap"
 	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
+	"rosadisk-agent/internal/scheduler"
 	"rosadisk-agent/internal/server"
 )
 
@@ -32,8 +37,24 @@ func main() {
 
 	srv := server.NewServer(logger, db)
 
-	logger.Info("starting server", zap.String("addr", ":8080"))
-	if err := srv.Start(":8080"); err != nil {
-		logger.Fatal("server failed", zap.Error(err))
+	sched := scheduler.NewScheduler(db, srv.EventChan(), logger)
+	sched.Start()
+	defer sched.Stop()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		logger.Info("starting server", zap.String("addr", ":8080"))
+		if err := srv.Start(":8080"); err != nil {
+			logger.Fatal("server failed", zap.Error(err))
+		}
+	}()
+
+	<-stop
+	logger.Info("shutting down...")
+
+	if err := srv.Shutdown(context.Background()); err != nil {
+		logger.Error("server shutdown error", zap.Error(err))
 	}
 }

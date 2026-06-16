@@ -98,3 +98,13 @@ type SubvolumeGetRequest struct {
 type SubvolumeDeleteRequest struct {
 	ID string
 }
+
+type BackupRequest struct{}
+
+type SnapshotRequest struct{}
+
+type DefragRequest struct{}
+
+type ScrubRequest struct{}
+
+type BalanceRequest struct{}
