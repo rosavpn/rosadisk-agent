@@ -77,6 +77,16 @@ func runMigrations(db *sql.DB) error {
 			started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			completed_at DATETIME
 		)`,
+		`CREATE TABLE IF NOT EXISTS snapshots (
+			id TEXT PRIMARY KEY,
+			subvolume_id TEXT NOT NULL,
+			name TEXT NOT NULL,
+			path TEXT NOT NULL UNIQUE,
+			frequency TEXT NOT NULL,
+			size INTEGER DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (subvolume_id) REFERENCES subvolumes(id)
+		)`,
 	}
 
 	for i, migration := range migrations {

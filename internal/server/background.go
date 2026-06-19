@@ -2,10 +2,13 @@ package server
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
@@ -105,34 +108,114 @@ func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]stri
 		}
 	}
 
-	s.logger.Info("running dummy snapshot",
-		zap.String("subvolume", subvol.ID),
-		zap.String("name", subvol.Name),
-		zap.String("path", subvol.Path),
-	)
-
-	time.Sleep(2 * time.Second)
-
-	status := "success"
-	errMsg := ""
-	output := "dummy snapshot completed"
-
-	if err := database.UpdateJobLog(s.DB, logID, status, output, errMsg); err != nil {
-		s.logger.Error("failed to update snapshot log",
+	mountpoint, err := storage.FindMountpointByUUID(subvol.FsUUID)
+	if err != nil {
+		s.logger.Error("filesystem not mounted for snapshot",
 			zap.Error(err),
 			zap.String("subvolume", subvol.ID),
 		)
+		failJobLog(s.DB, logID, err.Error())
+		return map[string]string{
+			"subvolume_id": subvol.ID,
+			"name":         subvol.Name,
+			"status":       "failed",
+			"error":        err.Error(),
+		}
 	}
 
-	s.logger.Info("snapshot done",
+	snapshotPath, err := storage.CreateSnapshotBtrfs(mountpoint, subvol.Path, subvol.Name, subvol.ID, subvol.SnapshotFrequency)
+	if err != nil {
+		s.logger.Error("failed to create snapshot",
+			zap.Error(err),
+			zap.String("subvolume", subvol.ID),
+		)
+		failJobLog(s.DB, logID, err.Error())
+		return map[string]string{
+			"subvolume_id": subvol.ID,
+			"name":         subvol.Name,
+			"status":       "failed",
+			"error":        err.Error(),
+		}
+	}
+
+	snapshotID := uuid.New().String()
+	snapshotName := snapshotPath
+	if idx := strings.LastIndex(snapshotPath, "/"); idx >= 0 {
+		snapshotName = snapshotPath[idx+1:]
+	}
+
+	if err := database.InsertSnapshot(s.DB, database.SnapshotRecord{
+		ID:          snapshotID,
+		SubvolumeID: subvol.ID,
+		Name:        snapshotName,
+		Path:        snapshotPath,
+		Frequency:   subvol.SnapshotFrequency,
+		CreatedAt:   time.Now(),
+	}); err != nil {
+		s.logger.Error("failed to persist snapshot record",
+			zap.Error(err),
+			zap.String("subvolume", subvol.ID),
+		)
+		_ = storage.DeleteSnapshotBtrfs(snapshotPath)
+		failJobLog(s.DB, logID, err.Error())
+		return map[string]string{
+			"subvolume_id": subvol.ID,
+			"name":         subvol.Name,
+			"status":       "failed",
+			"error":        err.Error(),
+		}
+	}
+
+	successJobLog(s.DB, logID, fmt.Sprintf("snapshot created: %s", snapshotPath))
+
+	s.logger.Info("snapshot created",
 		zap.String("subvolume", subvol.ID),
-		zap.String("status", status),
+		zap.String("path", snapshotPath),
 	)
+
+	enforceSnapshotRetention(s.DB, subvol)
 
 	return map[string]string{
 		"subvolume_id": subvol.ID,
 		"name":         subvol.Name,
-		"status":       status,
+		"path":         snapshotPath,
+		"status":       "success",
+	}
+}
+
+func failJobLog(db *sql.DB, logID int64, errMsg string) {
+	_ = database.UpdateJobLog(db, logID, "failed", "", errMsg)
+}
+
+func successJobLog(db *sql.DB, logID int64, output string) {
+	_ = database.UpdateJobLog(db, logID, "success", output, "")
+}
+
+func enforceSnapshotRetention(db *sql.DB, subvol database.SubvolumeRecord) {
+	if subvol.SnapshotRetention <= 0 {
+		return
+	}
+
+	snapshots, err := database.ListSnapshotsBySubvolume(db, subvol.ID)
+	if err != nil {
+		return
+	}
+
+	var freqSnapshots []database.SnapshotRecord
+	for _, s := range snapshots {
+		if s.Frequency == subvol.SnapshotFrequency {
+			freqSnapshots = append(freqSnapshots, s)
+		}
+	}
+
+	if len(freqSnapshots) <= subvol.SnapshotRetention {
+		return
+	}
+
+	toDelete := len(freqSnapshots) - subvol.SnapshotRetention
+	for i := 0; i < toDelete; i++ {
+		_ = storage.DeleteSnapshotBtrfs(freqSnapshots[i].Path)
+		_ = database.DeleteSnapshotRecord(db, freqSnapshots[i].ID)
 	}
 }
 
