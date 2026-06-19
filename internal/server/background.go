@@ -139,7 +139,7 @@ func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]stri
 func snapshotShouldRun(subvol database.SubvolumeRecord, cfg config.GlobalConfig, now time.Time) bool {
 	minute := now.Minute()
 	timeHHMM := now.Format("15:04")
-	weekday := toLowerWeekday(now.Weekday().String())
+	weekday := strings.ToLower(now.Weekday().String())
 	day := now.Day()
 
 	switch subvol.SnapshotFrequency {
@@ -213,10 +213,6 @@ func (s *Server) handleScrub(ctx context.Context, data interface{}) (interface{}
 	}
 
 	return results, nil
-}
-
-func toLowerWeekday(goWeekday string) string {
-	return strings.ToLower(goWeekday)
 }
 
 func (s *Server) handleBalance(ctx context.Context, data interface{}) (interface{}, error) {
