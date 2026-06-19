@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -215,19 +216,7 @@ func (s *Server) handleScrub(ctx context.Context, data interface{}) (interface{}
 }
 
 func toLowerWeekday(goWeekday string) string {
-	m := map[string]string{
-		"Monday":    "monday",
-		"Tuesday":   "tuesday",
-		"Wednesday": "wednesday",
-		"Thursday":  "thursday",
-		"Friday":    "friday",
-		"Saturday":  "saturday",
-		"Sunday":    "sunday",
-	}
-	if v, ok := m[goWeekday]; ok {
-		return v
-	}
-	return ""
+	return strings.ToLower(goWeekday)
 }
 
 func (s *Server) handleBalance(ctx context.Context, data interface{}) (interface{}, error) {
