@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +31,7 @@ type Server struct {
 	eventChan  chan event.Event
 	consumer   *event.ConsumerPool
 	logger     *zap.Logger
+	dbMu       sync.Mutex
 }
 
 func NewServer(logger *zap.Logger, db *sql.DB) *Server {

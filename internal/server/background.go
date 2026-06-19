@@ -88,6 +88,7 @@ func (s *Server) handleSnapshot(ctx context.Context, data interface{}) (interfac
 }
 
 func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]string {
+	s.dbMu.Lock()
 	logID, err := database.InsertJobLog(s.DB, database.JobLogRecord{
 		JobType:     "snapshot",
 		SubvolumeID: subvol.ID,
@@ -95,6 +96,7 @@ func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]stri
 		Status:      "running",
 		StartedAt:   time.Now(),
 	})
+	s.dbMu.Unlock()
 	if err != nil {
 		s.logger.Error("failed to insert snapshot log",
 			zap.Error(err),
@@ -114,7 +116,9 @@ func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]stri
 			zap.Error(err),
 			zap.String("subvolume", subvol.ID),
 		)
+		s.dbMu.Lock()
 		failJobLog(s.DB, logID, err.Error())
+		s.dbMu.Unlock()
 		return map[string]string{
 			"subvolume_id": subvol.ID,
 			"name":         subvol.Name,
@@ -129,7 +133,9 @@ func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]stri
 			zap.Error(err),
 			zap.String("subvolume", subvol.ID),
 		)
+		s.dbMu.Lock()
 		failJobLog(s.DB, logID, err.Error())
+		s.dbMu.Unlock()
 		return map[string]string{
 			"subvolume_id": subvol.ID,
 			"name":         subvol.Name,
@@ -144,20 +150,25 @@ func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]stri
 		snapshotName = snapshotPath[idx+1:]
 	}
 
-	if err := database.InsertSnapshot(s.DB, database.SnapshotRecord{
+	s.dbMu.Lock()
+	err = database.InsertSnapshot(s.DB, database.SnapshotRecord{
 		ID:          snapshotID,
 		SubvolumeID: subvol.ID,
 		Name:        snapshotName,
 		Path:        snapshotPath,
 		Frequency:   subvol.SnapshotFrequency,
 		CreatedAt:   time.Now(),
-	}); err != nil {
+	})
+	s.dbMu.Unlock()
+	if err != nil {
 		s.logger.Error("failed to persist snapshot record",
 			zap.Error(err),
 			zap.String("subvolume", subvol.ID),
 		)
 		_ = storage.DeleteSnapshotBtrfs(snapshotPath)
+		s.dbMu.Lock()
 		failJobLog(s.DB, logID, err.Error())
+		s.dbMu.Unlock()
 		return map[string]string{
 			"subvolume_id": subvol.ID,
 			"name":         subvol.Name,
@@ -166,14 +177,15 @@ func (s *Server) runSnapshotJob(subvol database.SubvolumeRecord) map[string]stri
 		}
 	}
 
+	s.dbMu.Lock()
 	successJobLog(s.DB, logID, fmt.Sprintf("snapshot created: %s", snapshotPath))
+	enforceSnapshotRetention(s.DB, subvol)
+	s.dbMu.Unlock()
 
 	s.logger.Info("snapshot created",
 		zap.String("subvolume", subvol.ID),
 		zap.String("path", snapshotPath),
 	)
-
-	enforceSnapshotRetention(s.DB, subvol)
 
 	return map[string]string{
 		"subvolume_id": subvol.ID,
