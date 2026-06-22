@@ -1,4 +1,4 @@
-package event
+package worker
 
 import (
 	"context"
@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/worker/event"
 )
 
 type ConsumerPool struct {
 	workers    int
-	eventChan  <-chan Event
+	eventChan  <-chan event.Event
 	dispatcher *Dispatcher
 	logger     *zap.Logger
 	wg         sync.WaitGroup
@@ -18,7 +19,7 @@ type ConsumerPool struct {
 	cancel     context.CancelFunc
 }
 
-func NewConsumerPool(workers int, eventChan <-chan Event, dispatcher *Dispatcher, logger *zap.Logger) *ConsumerPool {
+func NewConsumerPool(workers int, eventChan <-chan event.Event, dispatcher *Dispatcher, logger *zap.Logger) *ConsumerPool {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &ConsumerPool{
 		workers:    workers,
@@ -51,42 +52,30 @@ func (p *ConsumerPool) worker(id int) {
 		select {
 		case <-p.ctx.Done():
 			return
-		case event, ok := <-p.eventChan:
+		case evt, ok := <-p.eventChan:
 			if !ok {
 				return
 			}
-			p.processEvent(id, event)
+			p.processEvent(id, evt)
 		}
 	}
 }
 
-func (p *ConsumerPool) processEvent(workerID int, event Event) {
+func (p *ConsumerPool) processEvent(workerID int, evt event.Event) {
 	start := time.Now()
 
 	p.logger.Debug("worker processing event",
 		zap.Int("worker", workerID),
-		zap.String("action", string(event.Action)),
+		zap.String("action", string(evt.Action)),
 	)
 
-	resultChan := p.dispatcher.Dispatch(p.ctx, event)
-	result := <-resultChan
+	p.dispatcher.Dispatch(p.ctx, evt)
 
 	duration := time.Since(start)
 
-	if result.Error != nil {
-		p.logger.Error("event handler failed",
-			zap.Int("worker", workerID),
-			zap.String("action", string(event.Action)),
-			zap.Error(result.Error),
-			zap.Duration("duration", duration),
-		)
-	} else {
-		p.logger.Debug("event handled successfully",
-			zap.Int("worker", workerID),
-			zap.String("action", string(event.Action)),
-			zap.Duration("duration", duration),
-		)
-	}
-
-	event.Result <- result
+	p.logger.Debug("event dispatched",
+		zap.Int("worker", workerID),
+		zap.String("action", string(evt.Action)),
+		zap.Duration("duration", duration),
+	)
 }

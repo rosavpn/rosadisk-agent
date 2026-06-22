@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"rosadisk-agent/internal/config"
-	"rosadisk-agent/internal/event"
+	"rosadisk-agent/internal/worker/event"
 )
 
 type Scheduler struct {
@@ -87,46 +88,40 @@ func (s *Scheduler) checkVolumeJob(action event.ActionType, schedule config.Volu
 
 	minute := now.Minute()
 	timeHHMM := now.Format("15:04")
-	weekday := now.Weekday().String()
+	weekday := strings.ToLower(now.Weekday().String())
 	day := now.Day()
 
-	weekdayLower := toLowerWeekday(weekday)
+	var shouldEmit bool
+	var key string
 
 	if schedule.HourlyMinute == minute {
-		key := fmt.Sprintf("%s:hourly:%d", action, now.Hour())
+		key = fmt.Sprintf("%s:hourly:%d", action, now.Hour())
 		if s.lastRun[key] != now.Format("2006-01-02") {
-			s.lastRun[key] = now.Format("2006-01-02")
-			s.emitEvent(action, event.BackupRequest{})
-			return
+			shouldEmit = true
+		}
+	} else if schedule.Time == timeHHMM {
+		if schedule.WeeklyDay != "" && schedule.WeeklyDay == weekday {
+			_, weekNum := now.ISOWeek()
+			key = fmt.Sprintf("%s:weekly:%d", action, weekNum)
+			if s.lastRun[key] != now.Format("2006") {
+				shouldEmit = true
+			}
+		} else if schedule.MonthlyDay > 0 && schedule.MonthlyDay == day {
+			key = fmt.Sprintf("%s:monthly", action)
+			if s.lastRun[key] != now.Format("2006-01") {
+				shouldEmit = true
+			}
+		} else {
+			key = fmt.Sprintf("%s:daily", action)
+			if s.lastRun[key] != now.Format("2006-01-02") {
+				shouldEmit = true
+			}
 		}
 	}
 
-	if schedule.Time == timeHHMM {
-		dailyKey := fmt.Sprintf("%s:daily", action)
-		if s.lastRun[dailyKey] != now.Format("2006-01-02") {
-			s.lastRun[dailyKey] = now.Format("2006-01-02")
-			s.emitEvent(action, event.BackupRequest{})
-			return
-		}
-	}
-
-	if schedule.Time == timeHHMM && schedule.WeeklyDay != "" && schedule.WeeklyDay == weekdayLower {
-		_, weekNum := now.ISOWeek()
-		weeklyKey := fmt.Sprintf("%s:weekly:%d", action, weekNum)
-		if s.lastRun[weeklyKey] != now.Format("2006") {
-			s.lastRun[weeklyKey] = now.Format("2006")
-			s.emitEvent(action, event.BackupRequest{})
-			return
-		}
-	}
-
-	if schedule.Time == timeHHMM && schedule.MonthlyDay > 0 && schedule.MonthlyDay == day {
-		monthlyKey := fmt.Sprintf("%s:monthly", action)
-		if s.lastRun[monthlyKey] != now.Format("2006-01") {
-			s.lastRun[monthlyKey] = now.Format("2006-01")
-			s.emitEvent(action, event.BackupRequest{})
-			return
-		}
+	if shouldEmit {
+		s.lastRun[key] = getTimeKey(now, key)
+		s.emitEvent(action, s.getVolumeRequest(action))
 	}
 }
 
@@ -136,29 +131,71 @@ func (s *Scheduler) checkDiskJob(action event.ActionType, schedule config.DiskJo
 	}
 
 	timeHHMM := now.Format("15:04")
-	weekday := toLowerWeekday(now.Weekday().String())
+	weekday := strings.ToLower(now.Weekday().String())
 	day := now.Day()
+
+	var shouldEmit bool
+	var key string
 
 	switch schedule.Frequency {
 	case "weekly":
 		if schedule.Time == timeHHMM && schedule.DayOfWeek == weekday {
 			_, weekNum := now.ISOWeek()
-			key := fmt.Sprintf("%s:weekly:%d", action, weekNum)
+			key = fmt.Sprintf("%s:weekly:%d", action, weekNum)
 			if s.lastRun[key] != now.Format("2006") {
-				s.lastRun[key] = now.Format("2006")
-				s.emitEvent(action, event.ScrubRequest{})
+				shouldEmit = true
 			}
 		}
-
 	case "monthly":
 		if schedule.Time == timeHHMM && schedule.DayOfMonth == day {
-			key := fmt.Sprintf("%s:monthly", action)
+			key = fmt.Sprintf("%s:monthly", action)
 			if s.lastRun[key] != now.Format("2006-01") {
-				s.lastRun[key] = now.Format("2006-01")
-				s.emitEvent(action, event.ScrubRequest{})
+				shouldEmit = true
 			}
 		}
 	}
+
+	if shouldEmit {
+		s.lastRun[key] = getTimeKey(now, key)
+		s.emitEvent(action, s.getDiskRequest(action))
+	}
+}
+
+func (s *Scheduler) getVolumeRequest(action event.ActionType) interface{} {
+	switch action {
+	case event.ActionBackup:
+		return event.BackupRequest{}
+	case event.ActionSnapshot:
+		return event.SnapshotRequest{}
+	case event.ActionDefrag:
+		return event.DefragRequest{}
+	default:
+		return event.BackupRequest{}
+	}
+}
+
+func (s *Scheduler) getDiskRequest(action event.ActionType) interface{} {
+	switch action {
+	case event.ActionScrub:
+		return event.ScrubRequest{}
+	case event.ActionBalance:
+		return event.BalanceRequest{}
+	default:
+		return event.ScrubRequest{}
+	}
+}
+
+func getTimeKey(now time.Time, key string) string {
+	if strings.Contains(key, "hourly") {
+		return now.Format("2006-01-02")
+	}
+	if strings.Contains(key, "weekly") {
+		return now.Format("2006")
+	}
+	if strings.Contains(key, "monthly") {
+		return now.Format("2006-01")
+	}
+	return now.Format("2006-01-02")
 }
 
 func (s *Scheduler) emitEvent(action event.ActionType, data interface{}) {
@@ -189,20 +226,4 @@ func (s *Scheduler) emitEvent(action event.ActionType, data interface{}) {
 	case <-s.ctx.Done():
 		return
 	}
-}
-
-func toLowerWeekday(goWeekday string) string {
-	m := map[string]string{
-		"Monday":    "monday",
-		"Tuesday":   "tuesday",
-		"Wednesday": "wednesday",
-		"Thursday":  "thursday",
-		"Friday":    "friday",
-		"Saturday":  "saturday",
-		"Sunday":    "sunday",
-	}
-	if v, ok := m[goWeekday]; ok {
-		return v
-	}
-	return ""
 }

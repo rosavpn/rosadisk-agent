@@ -1,0 +1,41 @@
+package handler
+
+import (
+	"context"
+	"database/sql"
+
+	"go.uber.org/zap"
+	"rosadisk-agent/internal/worker/event"
+)
+
+type Handler interface {
+	Handle(ctx context.Context, data interface{}) (interface{}, error)
+}
+
+type HandlerFunc func(ctx context.Context, data interface{}) (interface{}, error)
+
+func (f HandlerFunc) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	return f(ctx, data)
+}
+
+func RegisterAll(logger *zap.Logger, db *sql.DB) map[event.ActionType]Handler {
+	handlers := make(map[event.ActionType]Handler)
+
+	handlers[event.ActionDiskList] = NewDiskHandler(logger)
+	handlers[event.ActionFilesystemList] = NewFilesystemHandler(logger)
+	handlers[event.ActionFilesystemCreate] = NewFilesystemCreateHandler(logger)
+	handlers[event.ActionMountList] = NewMountHandler(logger)
+	handlers[event.ActionMountCreate] = NewMountCreateHandler(logger)
+	handlers[event.ActionSubvolumeList] = NewSubvolumeHandler(logger, db)
+	handlers[event.ActionSubvolumeCreate] = NewSubvolumeCreateHandler(logger, db)
+	handlers[event.ActionSubvolumeGet] = NewSubvolumeGetHandler(logger, db)
+	handlers[event.ActionSubvolumeDelete] = NewSubvolumeDeleteHandler(logger, db)
+	handlers[event.ActionBackup] = NewBackupHandler(logger)
+	handlers[event.ActionSnapshot] = NewSnapshotHandler(logger)
+	handlers[event.ActionDefrag] = NewDefragHandler(logger)
+	handlers[event.ActionScrub] = NewScrubHandler(logger, db)
+	handlers[event.ActionBalance] = NewBalanceHandler(logger, db)
+
+	logger.Info("all handlers registered")
+	return handlers
+}

@@ -10,8 +10,8 @@ import (
 	"go.uber.org/zap"
 	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
-	"rosadisk-agent/internal/scheduler"
 	"rosadisk-agent/internal/server"
+	"rosadisk-agent/internal/worker"
 )
 
 func main() {
@@ -35,11 +35,11 @@ func main() {
 		}
 	}()
 
-	srv := server.NewServer(logger, db)
+	w := worker.NewWorker(logger, db)
+	w.Start()
+	defer w.Shutdown(context.Background())
 
-	sched := scheduler.NewScheduler(db, srv.EventChan(), logger)
-	sched.Start()
-	defer sched.Stop()
+	srv := server.NewServer(logger, db, w)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
