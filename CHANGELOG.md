@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/rosavpn/rosadisk-agent/compare/v0.15.0...v0.15.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* handle eventBus.Shutdown error in Worker.Shutdown ([e1dd4a6](https://github.com/rosavpn/rosadisk-agent/commit/e1dd4a6d55ffb6f95bf3656864573d300d4d1285))
+
 ## [0.15.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.14.0...v0.15.0) (2026-06-16)
 
 
