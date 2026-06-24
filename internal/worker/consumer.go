@@ -73,9 +73,17 @@ func (p *ConsumerPool) processEvent(workerID int, evt event.Event) {
 
 	duration := time.Since(start)
 
-	p.logger.Debug("event dispatched",
-		zap.Int("worker", workerID),
-		zap.String("action", string(evt.Action)),
-		zap.Duration("duration", duration),
-	)
+	if evt.Result != nil {
+		p.logger.Debug("event dispatched with result",
+			zap.Int("worker", workerID),
+			zap.String("action", string(evt.Action)),
+			zap.Duration("duration", duration),
+		)
+	} else {
+		p.logger.Debug("event dispatched (fire-and-forget)",
+			zap.Int("worker", workerID),
+			zap.String("action", string(evt.Action)),
+			zap.Duration("duration", duration),
+		)
+	}
 }

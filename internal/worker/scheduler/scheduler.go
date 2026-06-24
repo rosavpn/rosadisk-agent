@@ -14,24 +14,28 @@ import (
 )
 
 type Scheduler struct {
-	db        *sql.DB
-	eventChan chan<- event.Event
-	logger    *zap.Logger
-	ctx       context.Context
-	cancel    context.CancelFunc
-	wg        sync.WaitGroup
-	lastRun   map[string]string
+	db       *sql.DB
+	eventBus EventPublisher
+	logger   *zap.Logger
+	ctx      context.Context
+	cancel   context.CancelFunc
+	wg       sync.WaitGroup
+	lastRun  map[string]string
 }
 
-func NewScheduler(db *sql.DB, eventChan chan<- event.Event, logger *zap.Logger) *Scheduler {
+type EventPublisher interface {
+	PublishAsync(action event.ActionType, data interface{})
+}
+
+func NewScheduler(db *sql.DB, eventBus EventPublisher, logger *zap.Logger) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
-		db:        db,
-		eventChan: eventChan,
-		logger:    logger,
-		ctx:       ctx,
-		cancel:    cancel,
-		lastRun:   make(map[string]string),
+		db:       db,
+		eventBus: eventBus,
+		logger:   logger,
+		ctx:      ctx,
+		cancel:   cancel,
+		lastRun:  make(map[string]string),
 	}
 }
 
@@ -121,7 +125,7 @@ func (s *Scheduler) checkVolumeJob(action event.ActionType, schedule config.Volu
 
 	if shouldEmit {
 		s.lastRun[key] = getTimeKey(now, key)
-		s.emitEvent(action, s.getVolumeRequest(action))
+		s.eventBus.PublishAsync(action, s.getVolumeRequest(action))
 	}
 }
 
@@ -157,7 +161,7 @@ func (s *Scheduler) checkDiskJob(action event.ActionType, schedule config.DiskJo
 
 	if shouldEmit {
 		s.lastRun[key] = getTimeKey(now, key)
-		s.emitEvent(action, s.getDiskRequest(action))
+		s.eventBus.PublishAsync(action, s.getDiskRequest(action))
 	}
 }
 
@@ -196,34 +200,4 @@ func getTimeKey(now time.Time, key string) string {
 		return now.Format("2006-01")
 	}
 	return now.Format("2006-01-02")
-}
-
-func (s *Scheduler) emitEvent(action event.ActionType, data interface{}) {
-	s.logger.Info("scheduler emitting event", zap.String("action", string(action)))
-
-	resultChan := make(chan event.Result, 1)
-	evt := event.Event{
-		Action:    action,
-		Data:      data,
-		Timestamp: time.Now(),
-		Result:    resultChan,
-	}
-
-	select {
-	case s.eventChan <- evt:
-		result := <-resultChan
-		if result.Error != nil {
-			s.logger.Error("scheduler event failed",
-				zap.String("action", string(action)),
-				zap.Error(result.Error),
-			)
-		} else {
-			s.logger.Info("scheduler event completed",
-				zap.String("action", string(action)),
-				zap.Any("result", result.Data),
-			)
-		}
-	case <-s.ctx.Done():
-		return
-	}
 }

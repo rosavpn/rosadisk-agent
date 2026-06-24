@@ -18,8 +18,8 @@ import (
 //go:embed docs.html
 var docsHTML []byte
 
-func (s *Server) emitEvent(action event.ActionType, data interface{}) <-chan event.Result {
-	return s.eventPub.Publish(action, data)
+func (s *Server) emitEvent(action event.ActionType, data interface{}) event.Result {
+	return s.eventPub.PublishSync(action, data)
 }
 
 func (s *Server) GetHealth(ctx echo.Context) error {
@@ -142,8 +142,8 @@ func (s *Server) UpdateConfig(ctx echo.Context) error {
 func (s *Server) ListDisks(ctx echo.Context) error {
 	s.logger.Debug("received list disks request")
 
-	resultChan := s.emitEvent(event.ActionDiskList, event.DiskListRequest{})
-	result := <-resultChan
+	result := s.emitEvent(event.ActionDiskList, event.DiskListRequest{})
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -165,8 +165,8 @@ func (s *Server) ListDisks(ctx echo.Context) error {
 func (s *Server) ListFilesystems(ctx echo.Context) error {
 	s.logger.Debug("received list filesystems request")
 
-	resultChan := s.emitEvent(event.ActionFilesystemList, event.FilesystemListRequest{})
-	result := <-resultChan
+	result := s.emitEvent(event.ActionFilesystemList, event.FilesystemListRequest{})
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -202,8 +202,8 @@ func (s *Server) CreateFilesystem(ctx echo.Context) error {
 		RaidProfile: string(req.RaidProfile),
 	}
 
-	resultChan := s.emitEvent(event.ActionFilesystemCreate, eventReq)
-	result := <-resultChan
+	result := s.emitEvent(event.ActionFilesystemCreate, eventReq)
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
@@ -225,8 +225,8 @@ func (s *Server) CreateFilesystem(ctx echo.Context) error {
 func (s *Server) ListMounts(ctx echo.Context) error {
 	s.logger.Debug("received list mounts request")
 
-	resultChan := s.emitEvent(event.ActionMountList, event.MountListRequest{})
-	result := <-resultChan
+	result := s.emitEvent(event.ActionMountList, event.MountListRequest{})
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -260,8 +260,8 @@ func (s *Server) MountFilesystem(ctx echo.Context) error {
 		UUID: req.Uuid,
 	}
 
-	resultChan := s.emitEvent(event.ActionMountCreate, eventReq)
-	result := <-resultChan
+	result := s.emitEvent(event.ActionMountCreate, eventReq)
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
@@ -283,8 +283,8 @@ func (s *Server) MountFilesystem(ctx echo.Context) error {
 func (s *Server) ListSubvolumes(ctx echo.Context) error {
 	s.logger.Debug("received list subvolumes request")
 
-	resultChan := s.emitEvent(event.ActionSubvolumeList, event.SubvolumeListRequest{})
-	result := <-resultChan
+	result := s.emitEvent(event.ActionSubvolumeList, event.SubvolumeListRequest{})
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -367,8 +367,8 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 		},
 	}
 
-	resultChan := s.emitEvent(event.ActionSubvolumeCreate, eventReq)
-	result := <-resultChan
+	result := s.emitEvent(event.ActionSubvolumeCreate, eventReq)
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
@@ -394,8 +394,8 @@ func (s *Server) GetSubvolume(ctx echo.Context, id openapi_types.UUID) error {
 		ID: id.String(),
 	}
 
-	resultChan := s.emitEvent(event.ActionSubvolumeGet, eventReq)
-	result := <-resultChan
+	result := s.emitEvent(event.ActionSubvolumeGet, eventReq)
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{
@@ -421,8 +421,8 @@ func (s *Server) DeleteSubvolume(ctx echo.Context, id openapi_types.UUID) error 
 		ID: id.String(),
 	}
 
-	resultChan := s.emitEvent(event.ActionSubvolumeDelete, eventReq)
-	result := <-resultChan
+	result := s.emitEvent(event.ActionSubvolumeDelete, eventReq)
+	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{

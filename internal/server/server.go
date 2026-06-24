@@ -12,7 +12,7 @@ import (
 )
 
 type EventPublisher interface {
-	Publish(action event.ActionType, data interface{}) <-chan event.Result
+	PublishSync(action event.ActionType, data interface{}) event.Result
 }
 
 type Server struct {

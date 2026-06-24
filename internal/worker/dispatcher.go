@@ -26,7 +26,9 @@ func (d *Dispatcher) Dispatch(ctx context.Context, evt event.Event) {
 		d.logger.Warn("no handler registered for event",
 			zap.String("action", string(evt.Action)),
 		)
-		evt.Result <- event.Result{Error: ErrNoHandler}
+		if evt.Result != nil {
+			evt.Result <- event.Result{Error: ErrNoHandler}
+		}
 		return
 	}
 
@@ -37,7 +39,9 @@ func (d *Dispatcher) Dispatch(ctx context.Context, evt event.Event) {
 
 	go func() {
 		data, err := h.Handle(ctx, evt.Data)
-		evt.Result <- event.Result{Data: data, Error: err}
+		if evt.Result != nil {
+			evt.Result <- event.Result{Data: data, Error: err}
+		}
 	}()
 }
 
