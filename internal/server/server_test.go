@@ -1,54 +1,33 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"rosadisk-agent/internal/event"
+	"rosadisk-agent/internal/worker/event"
 )
 
-func TestHandleDiskList(t *testing.T) {
-	logger, _ := zap.NewProduction()
-	dispatcher := event.NewDispatcher(logger)
+type mockEventPublisher struct {
+	publishFunc func(action event.ActionType, data interface{}) <-chan event.Result
+}
 
-	s := &Server{
-		DB:         nil,
-		dispatcher: dispatcher,
-		eventChan:  make(chan event.Event, 10),
-		logger:     logger,
+func (m *mockEventPublisher) Publish(action event.ActionType, data interface{}) <-chan event.Result {
+	if m.publishFunc != nil {
+		return m.publishFunc(action, data)
 	}
-
-	s.registerHandlers()
-
-	go func() {
-		for evt := range s.eventChan {
-			go func(e event.Event) {
-				resultChan := s.dispatcher.Dispatch(context.Background(), e)
-				result := <-resultChan
-				e.Result <- result
-			}(evt)
-		}
-	}()
-
-	resultChan := s.emitEvent(event.ActionDiskList, event.DiskListRequest{})
-	result := <-resultChan
-
-	require.NoError(t, result.Error)
-	disks, ok := result.Data.([]event.DiskInfo)
-	require.True(t, ok)
-	assert.Greater(t, len(disks), 0, "should have at least one disk")
+	resultChan := make(chan event.Result, 1)
+	resultChan <- event.Result{Data: []event.DiskInfo{}}
+	return resultChan
 }
 
 func TestListDisksHandler(t *testing.T) {
 	logger, _ := zap.NewProduction()
-	s := NewServer(logger, nil)
-	defer s.Shutdown(context.Background())
+	mockPub := &mockEventPublisher{}
+
+	s := NewServer(logger, nil, mockPub)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/disks", nil)
 	rec := httptest.NewRecorder()
@@ -58,41 +37,61 @@ func TestListDisksHandler(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-func TestEventEmission(t *testing.T) {
+func TestGetHealth(t *testing.T) {
 	logger, _ := zap.NewProduction()
-	eventChan := make(chan event.Event, 10)
-	dispatcher := event.NewDispatcher(logger)
-	dispatcher.Register(event.ActionDiskList, event.HandlerFunc(func(ctx context.Context, data interface{}) (interface{}, error) {
-		return []event.DiskInfo{}, nil
-	}))
+	mockPub := &mockEventPublisher{}
 
-	s := &Server{
-		DB:         nil,
-		eventChan:  eventChan,
-		dispatcher: dispatcher,
-		logger:     logger,
-	}
+	s := NewServer(logger, nil, mockPub)
 
-	resultChan := s.emitEvent(event.ActionDiskList, event.DiskListRequest{})
+	req := httptest.NewRequest(http.MethodGet, "/_health", nil)
+	rec := httptest.NewRecorder()
 
-	select {
-	case evt := <-eventChan:
-		assert.Equal(t, event.ActionDiskList, evt.Action)
-		assert.IsType(t, event.DiskListRequest{}, evt.Data)
-		require.NotNil(t, evt.Result)
+	s.Echo.ServeHTTP(rec, req)
 
-		go func(e event.Event) {
-			resultChan := s.dispatcher.Dispatch(context.Background(), e)
-			result := <-resultChan
-			e.Result <- result
-		}(evt)
-	case <-time.After(time.Second):
-		t.Fatal("event not emitted")
-	}
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
 
-	select {
-	case <-resultChan:
-	case <-time.After(time.Second):
-		t.Fatal("result channel not receiving")
-	}
+func TestGetOpenAPIJSON(t *testing.T) {
+	logger, _ := zap.NewProduction()
+	mockPub := &mockEventPublisher{}
+
+	s := NewServer(logger, nil, mockPub)
+
+	req := httptest.NewRequest(http.MethodGet, "/openapi.json", nil)
+	rec := httptest.NewRecorder()
+
+	s.Echo.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+}
+
+func TestGetOpenAPIYAML(t *testing.T) {
+	logger, _ := zap.NewProduction()
+	mockPub := &mockEventPublisher{}
+
+	s := NewServer(logger, nil, mockPub)
+
+	req := httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil)
+	rec := httptest.NewRecorder()
+
+	s.Echo.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "text/yaml", rec.Header().Get("Content-Type"))
+}
+
+func TestGetDocs(t *testing.T) {
+	logger, _ := zap.NewProduction()
+	mockPub := &mockEventPublisher{}
+
+	s := NewServer(logger, nil, mockPub)
+
+	req := httptest.NewRequest(http.MethodGet, "/docs", nil)
+	rec := httptest.NewRecorder()
+
+	s.Echo.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "html")
 }
