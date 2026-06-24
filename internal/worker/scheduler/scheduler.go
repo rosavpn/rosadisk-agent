@@ -13,9 +13,13 @@ import (
 	"rosadisk-agent/internal/worker/event"
 )
 
+type AsyncEventPublisher interface {
+	PublishAsync(action event.ActionType, data interface{})
+}
+
 type Scheduler struct {
 	db       *sql.DB
-	eventBus EventPublisher
+	eventBus AsyncEventPublisher
 	logger   *zap.Logger
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -23,11 +27,7 @@ type Scheduler struct {
 	lastRun  map[string]string
 }
 
-type EventPublisher interface {
-	PublishAsync(action event.ActionType, data interface{})
-}
-
-func NewScheduler(db *sql.DB, eventBus EventPublisher, logger *zap.Logger) *Scheduler {
+func NewScheduler(db *sql.DB, eventBus AsyncEventPublisher, logger *zap.Logger) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
 		db:       db,

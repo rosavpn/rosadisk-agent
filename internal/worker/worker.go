@@ -12,6 +12,18 @@ import (
 	"rosadisk-agent/internal/worker/scheduler"
 )
 
+type SyncEventPublisher interface {
+	PublishSync(action event.ActionType, data interface{}) event.Result
+}
+
+type AsyncEventPublisher interface {
+	PublishAsync(action event.ActionType, data interface{})
+}
+
+type ConcurrentEventPublisher interface {
+	PublishConcurrent(action event.ActionType, data interface{}) event.Result
+}
+
 type EventBus struct {
 	logger         *zap.Logger
 	syncChan       chan event.Event
