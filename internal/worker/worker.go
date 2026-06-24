@@ -21,7 +21,7 @@ type AsyncEventPublisher interface {
 }
 
 type ConcurrentEventPublisher interface {
-	PublishConcurrent(action event.ActionType, data interface{}) event.Result
+	PublishConcurrent(action event.ActionType, data interface{})
 }
 
 type EventBus struct {
@@ -99,16 +99,14 @@ func (bus *EventBus) PublishAsync(action event.ActionType, data interface{}) {
 	bus.asyncChan <- evt
 }
 
-func (bus *EventBus) PublishConcurrent(action event.ActionType, data interface{}) event.Result {
-	resultChan := make(chan event.Result, 1)
+func (bus *EventBus) PublishConcurrent(action event.ActionType, data interface{}) {
 	evt := event.Event{
 		Action:    action,
 		Data:      data,
 		Timestamp: time.Now(),
-		Result:    resultChan,
+		Result:    nil,
 	}
 	bus.concurrentChan <- evt
-	return <-resultChan
 }
 
 type Worker struct {
@@ -152,6 +150,6 @@ func (w *Worker) PublishAsync(action event.ActionType, data interface{}) {
 	w.eventBus.PublishAsync(action, data)
 }
 
-func (w *Worker) PublishConcurrent(action event.ActionType, data interface{}) event.Result {
-	return w.eventBus.PublishConcurrent(action, data)
+func (w *Worker) PublishConcurrent(action event.ActionType, data interface{}) {
+	w.eventBus.PublishConcurrent(action, data)
 }
