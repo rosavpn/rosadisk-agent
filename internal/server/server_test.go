@@ -10,17 +10,10 @@ import (
 	"rosadisk-agent/internal/worker/event"
 )
 
-type mockEventPublisher struct {
-	publishFunc func(action event.ActionType, data interface{}) <-chan event.Result
-}
+type mockEventPublisher struct{}
 
-func (m *mockEventPublisher) Publish(action event.ActionType, data interface{}) <-chan event.Result {
-	if m.publishFunc != nil {
-		return m.publishFunc(action, data)
-	}
-	resultChan := make(chan event.Result, 1)
-	resultChan <- event.Result{Data: []event.DiskInfo{}}
-	return resultChan
+func (m *mockEventPublisher) PublishSync(action event.ActionType, data interface{}) event.Result {
+	return event.Result{Data: []event.DiskInfo{}}
 }
 
 func TestListDisksHandler(t *testing.T) {

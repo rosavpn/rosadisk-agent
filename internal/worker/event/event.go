@@ -19,6 +19,8 @@ const (
 	ActionDefrag           ActionType = "background:defrag"
 	ActionScrub            ActionType = "background:scrub"
 	ActionBalance          ActionType = "background:balance"
+	ActionUploadBackup     ActionType = "upload:backup"
+	ActionUploadSnapshot   ActionType = "upload:snapshot"
 )
 
 type Event struct {

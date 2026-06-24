@@ -4,66 +4,53 @@ import (
 	"context"
 	"database/sql"
 	"sync"
-	"time"
-
-	"rosadisk-agent/internal/worker/event"
-	"rosadisk-agent/internal/worker/handler"
-	"rosadisk-agent/internal/worker/scheduler"
 
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/worker/event"
+	"rosadisk-agent/internal/worker/scheduler"
 )
 
 type Worker struct {
-	logger     *zap.Logger
-	db         *sql.DB
-	eventChan  chan event.Event
-	dispatcher *Dispatcher
-	consumer   *ConsumerPool
-	scheduler  *scheduler.Scheduler
-	wg         sync.WaitGroup
+	logger    *zap.Logger
+	db        *sql.DB
+	eventBus  *EventBus
+	scheduler *scheduler.Scheduler
+	wg        sync.WaitGroup
 }
 
 func NewWorker(logger *zap.Logger, db *sql.DB) *Worker {
-	eventChan := make(chan event.Event, 100)
-	handlers := handler.RegisterAll(logger, db)
-	dispatcher := NewDispatcher(logger, handlers)
-	consumer := NewConsumerPool(4, eventChan, dispatcher, logger)
+	eventBus := NewEventBus(logger, db)
+	scheduler := scheduler.NewScheduler(db, eventBus, logger)
 
-	w := &Worker{
-		logger:     logger,
-		db:         db,
-		eventChan:  eventChan,
-		dispatcher: dispatcher,
-		consumer:   consumer,
+	return &Worker{
+		logger:    logger,
+		db:        db,
+		eventBus:  eventBus,
+		scheduler: scheduler,
 	}
-
-	w.scheduler = scheduler.NewScheduler(db, eventChan, logger)
-
-	return w
 }
 
 func (w *Worker) Start() {
-	w.consumer.Start()
+	w.eventBus.Start()
 	w.scheduler.Start()
 	w.logger.Info("worker started")
 }
 
 func (w *Worker) Shutdown(ctx context.Context) error {
 	w.scheduler.Stop()
-	w.consumer.Stop()
-	close(w.eventChan)
+	err := w.eventBus.Shutdown(ctx)
 	w.logger.Info("worker shutdown complete")
-	return nil
+	return err
 }
 
-func (w *Worker) Publish(action event.ActionType, data interface{}) <-chan event.Result {
-	resultChan := make(chan event.Result, 1)
-	evt := event.Event{
-		Action:    action,
-		Data:      data,
-		Timestamp: time.Now(),
-		Result:    resultChan,
-	}
-	w.eventChan <- evt
-	return resultChan
+func (w *Worker) PublishSync(action event.ActionType, data interface{}) event.Result {
+	return w.eventBus.PublishSync(action, data)
+}
+
+func (w *Worker) PublishAsync(action event.ActionType, data interface{}) {
+	w.eventBus.PublishAsync(action, data)
+}
+
+func (w *Worker) PublishConcurrent(action event.ActionType, data interface{}) {
+	w.eventBus.PublishConcurrent(action, data)
 }

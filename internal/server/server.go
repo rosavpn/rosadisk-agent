@@ -8,21 +8,17 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"rosadisk-agent/api/gen"
-	"rosadisk-agent/internal/worker/event"
+	"rosadisk-agent/internal/worker"
 )
-
-type EventPublisher interface {
-	Publish(action event.ActionType, data interface{}) <-chan event.Result
-}
 
 type Server struct {
 	Echo     *echo.Echo
 	DB       *sql.DB
-	eventPub EventPublisher
+	eventPub worker.SyncEventPublisher
 	logger   *zap.Logger
 }
 
-func NewServer(logger *zap.Logger, db *sql.DB, eventPub EventPublisher) *Server {
+func NewServer(logger *zap.Logger, db *sql.DB, eventPub worker.SyncEventPublisher) *Server {
 	e := echo.New()
 
 	s := &Server{
