@@ -139,9 +139,9 @@ func (w *Worker) Start() {
 
 func (w *Worker) Shutdown(ctx context.Context) error {
 	w.scheduler.Stop()
-	w.eventBus.Shutdown(ctx)
+	err := w.eventBus.Shutdown(ctx)
 	w.logger.Info("worker shutdown complete")
-	return nil
+	return err
 }
 
 func (w *Worker) PublishSync(action event.ActionType, data interface{}) event.Result {
