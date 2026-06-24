@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.15.1...v0.16.0) (2026-06-24)
+
+
+### Features
+
+* add thread-safe database wrapper with RWMutex ([64257f5](https://github.com/rosavpn/rosadisk-agent/commit/64257f513a760c6bd11e0adbcc1230bb704e46aa))
+* add thread-safe database wrapper with RWMutex ([af3cf82](https://github.com/rosavpn/rosadisk-agent/commit/af3cf8265752d5dceaf3f7310ee65db52dfc8502))
+
 ## [0.15.1](https://github.com/rosavpn/rosadisk-agent/compare/v0.15.0...v0.15.1) (2026-06-24)
 
 
