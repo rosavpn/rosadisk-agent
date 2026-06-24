@@ -47,8 +47,11 @@ type CreateSubvolumeRecord struct {
 	SMB                        bool
 }
 
-func ListSubvolumes(db *sql.DB) ([]SubvolumeRecord, error) {
-	rows, err := db.Query(`
+func (db *Database) ListSubvolumes() ([]SubvolumeRecord, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	rows, err := db.DB.Query(`
 		SELECT id, name, fs_uuid, path, compression, quota_enabled, quota_limit,
 		       snapshot_enabled, snapshot_frequency, snapshot_retention,
 		       backup_incremental_enabled, backup_incremental_frequency,
@@ -111,7 +114,10 @@ func ListSubvolumes(db *sql.DB) ([]SubvolumeRecord, error) {
 	return records, nil
 }
 
-func GetSubvolume(db *sql.DB, id string) (*SubvolumeRecord, error) {
+func (db *Database) GetSubvolume(id string) (*SubvolumeRecord, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	var r SubvolumeRecord
 	var snapshotFreq sql.NullString
 	var snapshotRetention sql.NullInt64
@@ -121,7 +127,7 @@ func GetSubvolume(db *sql.DB, id string) (*SubvolumeRecord, error) {
 	var backupFullFreq sql.NullString
 	var createdAt string
 
-	err := db.QueryRow(`
+	err := db.DB.QueryRow(`
 		SELECT id, name, fs_uuid, path, compression, quota_enabled, quota_limit,
 		       snapshot_enabled, snapshot_frequency, snapshot_retention,
 		       backup_incremental_enabled, backup_incremental_frequency,
@@ -167,8 +173,11 @@ func GetSubvolume(db *sql.DB, id string) (*SubvolumeRecord, error) {
 	return &r, nil
 }
 
-func InsertSubvolumeRecord(db *sql.DB, r CreateSubvolumeRecord) error {
-	_, err := db.Exec(`
+func (db *Database) InsertSubvolumeRecord(r CreateSubvolumeRecord) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	_, err := db.DB.Exec(`
 		INSERT INTO subvolumes (
 			id, name, fs_uuid, path, compression, quota_enabled, quota_limit,
 			snapshot_enabled, snapshot_frequency, snapshot_retention,
@@ -191,8 +200,11 @@ func InsertSubvolumeRecord(db *sql.DB, r CreateSubvolumeRecord) error {
 	return nil
 }
 
-func DeleteSubvolumeRecord(db *sql.DB, id string) error {
-	_, err := db.Exec("DELETE FROM subvolumes WHERE id = ?", id)
+func (db *Database) DeleteSubvolumeRecord(id string) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	_, err := db.DB.Exec("DELETE FROM subvolumes WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to remove subvolume from database: %w", err)
 	}

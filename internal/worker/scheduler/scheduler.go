@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 	"sync"
@@ -10,6 +9,7 @@ import (
 
 	"go.uber.org/zap"
 	"rosadisk-agent/internal/config"
+	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/worker/event"
 )
 
@@ -18,7 +18,7 @@ type AsyncEventPublisher interface {
 }
 
 type Scheduler struct {
-	db       *sql.DB
+	db       *database.Database
 	eventBus AsyncEventPublisher
 	logger   *zap.Logger
 	ctx      context.Context
@@ -27,7 +27,7 @@ type Scheduler struct {
 	lastRun  map[string]string
 }
 
-func NewScheduler(db *sql.DB, eventBus AsyncEventPublisher, logger *zap.Logger) *Scheduler {
+func NewScheduler(db *database.Database, eventBus AsyncEventPublisher, logger *zap.Logger) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
 		db:       db,

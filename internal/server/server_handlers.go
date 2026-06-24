@@ -11,7 +11,6 @@ import (
 	"rosadisk-agent/api"
 	"rosadisk-agent/api/gen"
 	"rosadisk-agent/internal/config"
-	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/worker/event"
 )
 
@@ -61,7 +60,7 @@ func (s *Server) ListJobLogs(ctx echo.Context, params gen.ListJobLogsParams) err
 		status = *params.Status
 	}
 
-	records, err := database.ListJobLogs(s.DB, jobType, status, limit)
+	records, err := s.DB.ListJobLogs(jobType, status, limit)
 	if err != nil {
 		s.logger.Error("failed to list job logs", zap.Error(err))
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -78,7 +77,7 @@ func (s *Server) ListJobLogs(ctx echo.Context, params gen.ListJobLogsParams) err
 }
 
 func (s *Server) GetJobLog(ctx echo.Context, id int) error {
-	record, err := database.GetJobLog(s.DB, int64(id))
+	record, err := s.DB.GetJobLog(int64(id))
 	if err != nil {
 		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{
 			Error: "job log not found",

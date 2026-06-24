@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -15,10 +14,10 @@ import (
 
 type SubvolumeHandler struct {
 	logger *zap.Logger
-	db     *sql.DB
+	db     *database.Database
 }
 
-func NewSubvolumeHandler(logger *zap.Logger, db *sql.DB) *SubvolumeHandler {
+func NewSubvolumeHandler(logger *zap.Logger, db *database.Database) *SubvolumeHandler {
 	return &SubvolumeHandler{
 		logger: logger,
 		db:     db,
@@ -28,7 +27,7 @@ func NewSubvolumeHandler(logger *zap.Logger, db *sql.DB) *SubvolumeHandler {
 func (h *SubvolumeHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
 	h.logger.Info("handling subvolume list event")
 
-	dbRecords, err := database.ListSubvolumes(h.db)
+	dbRecords, err := h.db.ListSubvolumes()
 	if err != nil {
 		h.logger.Error("failed to list subvolumes", zap.Error(err))
 		return nil, err
@@ -69,10 +68,10 @@ func (h *SubvolumeHandler) Handle(ctx context.Context, data interface{}) (interf
 
 type SubvolumeCreateHandler struct {
 	logger *zap.Logger
-	db     *sql.DB
+	db     *database.Database
 }
 
-func NewSubvolumeCreateHandler(logger *zap.Logger, db *sql.DB) *SubvolumeCreateHandler {
+func NewSubvolumeCreateHandler(logger *zap.Logger, db *database.Database) *SubvolumeCreateHandler {
 	return &SubvolumeCreateHandler{
 		logger: logger,
 		db:     db,
@@ -127,7 +126,7 @@ func (h *SubvolumeCreateHandler) Handle(ctx context.Context, data interface{}) (
 		SMB:                        req.SMB,
 	}
 
-	if err := database.InsertSubvolumeRecord(h.db, dbRecord); err != nil {
+	if err := h.db.InsertSubvolumeRecord(dbRecord); err != nil {
 		_ = storage.DeleteSubvolumeBtrfs(subvolPath)
 		h.logger.Error("failed to persist subvolume", zap.Error(err))
 		return nil, err
@@ -155,10 +154,10 @@ func (h *SubvolumeCreateHandler) Handle(ctx context.Context, data interface{}) (
 
 type SubvolumeGetHandler struct {
 	logger *zap.Logger
-	db     *sql.DB
+	db     *database.Database
 }
 
-func NewSubvolumeGetHandler(logger *zap.Logger, db *sql.DB) *SubvolumeGetHandler {
+func NewSubvolumeGetHandler(logger *zap.Logger, db *database.Database) *SubvolumeGetHandler {
 	return &SubvolumeGetHandler{
 		logger: logger,
 		db:     db,
@@ -174,7 +173,7 @@ func (h *SubvolumeGetHandler) Handle(ctx context.Context, data interface{}) (int
 		return nil, fmt.Errorf("invalid request type")
 	}
 
-	r, err := database.GetSubvolume(h.db, req.ID)
+	r, err := h.db.GetSubvolume(req.ID)
 	if err != nil {
 		h.logger.Error("failed to get subvolume", zap.Error(err))
 		return nil, err
@@ -212,10 +211,10 @@ func (h *SubvolumeGetHandler) Handle(ctx context.Context, data interface{}) (int
 
 type SubvolumeDeleteHandler struct {
 	logger *zap.Logger
-	db     *sql.DB
+	db     *database.Database
 }
 
-func NewSubvolumeDeleteHandler(logger *zap.Logger, db *sql.DB) *SubvolumeDeleteHandler {
+func NewSubvolumeDeleteHandler(logger *zap.Logger, db *database.Database) *SubvolumeDeleteHandler {
 	return &SubvolumeDeleteHandler{
 		logger: logger,
 		db:     db,
@@ -231,7 +230,7 @@ func (h *SubvolumeDeleteHandler) Handle(ctx context.Context, data interface{}) (
 		return nil, fmt.Errorf("invalid request type")
 	}
 
-	r, err := database.GetSubvolume(h.db, req.ID)
+	r, err := h.db.GetSubvolume(req.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +240,7 @@ func (h *SubvolumeDeleteHandler) Handle(ctx context.Context, data interface{}) (
 		return nil, err
 	}
 
-	if err := database.DeleteSubvolumeRecord(h.db, req.ID); err != nil {
+	if err := h.db.DeleteSubvolumeRecord(req.ID); err != nil {
 		h.logger.Error("failed to remove subvolume from database", zap.Error(err))
 		return nil, err
 	}

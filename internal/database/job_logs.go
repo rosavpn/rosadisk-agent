@@ -19,8 +19,11 @@ type JobLogRecord struct {
 	CompletedAt time.Time
 }
 
-func InsertJobLog(db *sql.DB, r JobLogRecord) (int64, error) {
-	result, err := db.Exec(`
+func (db *Database) InsertJobLog(r JobLogRecord) (int64, error) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	result, err := db.DB.Exec(`
 		INSERT INTO job_logs (job_type, mountpoint, subvolume_id, target_name, status, output, error, started_at, completed_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, r.JobType, nullString(r.Mountpoint), nullString(r.SubvolumeID), nullString(r.TargetName),
@@ -33,8 +36,11 @@ func InsertJobLog(db *sql.DB, r JobLogRecord) (int64, error) {
 	return result.LastInsertId()
 }
 
-func UpdateJobLog(db *sql.DB, id int64, status, output, errMsg string) error {
-	_, err := db.Exec(`
+func (db *Database) UpdateJobLog(id int64, status, output, errMsg string) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	_, err := db.DB.Exec(`
 		UPDATE job_logs SET status = ?, output = ?, error = ?, completed_at = ? WHERE id = ?
 	`, status, nullString(output), nullString(errMsg), time.Now(), id)
 	if err != nil {
@@ -44,7 +50,10 @@ func UpdateJobLog(db *sql.DB, id int64, status, output, errMsg string) error {
 	return nil
 }
 
-func ListJobLogs(db *sql.DB, jobType, status string, limit int) ([]JobLogRecord, error) {
+func (db *Database) ListJobLogs(jobType, status string, limit int) ([]JobLogRecord, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	query := `
 		SELECT id, job_type, mountpoint, subvolume_id, target_name, status, output, error, started_at, completed_at
 		FROM job_logs
@@ -63,7 +72,7 @@ func ListJobLogs(db *sql.DB, jobType, status string, limit int) ([]JobLogRecord,
 	query += " ORDER BY id DESC LIMIT ?"
 	args = append(args, limit)
 
-	rows, err := db.Query(query, args...)
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query job logs: %w", err)
 	}
@@ -96,12 +105,15 @@ func ListJobLogs(db *sql.DB, jobType, status string, limit int) ([]JobLogRecord,
 	return records, nil
 }
 
-func GetJobLog(db *sql.DB, id int64) (*JobLogRecord, error) {
+func (db *Database) GetJobLog(id int64) (*JobLogRecord, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	var r JobLogRecord
 	var mountpoint, subvolumeID, targetName, output, errMsg sql.NullString
 	var completedAt sql.NullTime
 
-	err := db.QueryRow(`
+	err := db.DB.QueryRow(`
 		SELECT id, job_type, mountpoint, subvolume_id, target_name, status, output, error, started_at, completed_at
 		FROM job_logs
 		WHERE id = ?

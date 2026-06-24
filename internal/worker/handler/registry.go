@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/worker/event"
 )
 
@@ -18,7 +18,7 @@ func (f HandlerFunc) Handle(ctx context.Context, data interface{}) (interface{},
 	return f(ctx, data)
 }
 
-func RegisterAll(logger *zap.Logger, db *sql.DB) map[event.ActionType]Handler {
+func RegisterAll(logger *zap.Logger, db *database.Database) map[event.ActionType]Handler {
 	handlers := make(map[event.ActionType]Handler)
 
 	handlers[event.ActionDiskList] = NewDiskHandler(logger)
