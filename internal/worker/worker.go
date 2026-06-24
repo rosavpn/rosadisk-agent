@@ -2,23 +2,23 @@ package worker
 
 import (
 	"context"
-	"database/sql"
 	"sync"
 
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/worker/event"
 	"rosadisk-agent/internal/worker/scheduler"
 )
 
 type Worker struct {
 	logger    *zap.Logger
-	db        *sql.DB
+	db        *database.Database
 	eventBus  *EventBus
 	scheduler *scheduler.Scheduler
 	wg        sync.WaitGroup
 }
 
-func NewWorker(logger *zap.Logger, db *sql.DB) *Worker {
+func NewWorker(logger *zap.Logger, db *database.Database) *Worker {
 	eventBus := NewEventBus(logger, db)
 	scheduler := scheduler.NewScheduler(db, eventBus, logger)
 

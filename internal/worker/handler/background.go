@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"go.uber.org/zap"
@@ -57,10 +56,10 @@ func (h *DefragHandler) Handle(ctx context.Context, data interface{}) (interface
 
 type ScrubHandler struct {
 	logger *zap.Logger
-	db     *sql.DB
+	db     *database.Database
 }
 
-func NewScrubHandler(logger *zap.Logger, db *sql.DB) *ScrubHandler {
+func NewScrubHandler(logger *zap.Logger, db *database.Database) *ScrubHandler {
 	return &ScrubHandler{
 		logger: logger,
 		db:     db,
@@ -79,7 +78,7 @@ func (h *ScrubHandler) Handle(ctx context.Context, data interface{}) (interface{
 	results := make([]map[string]string, 0)
 
 	for _, m := range mounts {
-		logID, err := database.InsertJobLog(h.db, database.JobLogRecord{
+		logID, err := h.db.InsertJobLog(database.JobLogRecord{
 			JobType:    "scrub",
 			Mountpoint: m.Mountpoint,
 			TargetName: m.Label,
@@ -108,7 +107,7 @@ func (h *ScrubHandler) Handle(ctx context.Context, data interface{}) (interface{
 			)
 		}
 
-		if err := database.UpdateJobLog(h.db, logID, status, output, errMsg); err != nil {
+		if err := h.db.UpdateJobLog(logID, status, output, errMsg); err != nil {
 			h.logger.Error("failed to update scrub log", zap.Error(err))
 		}
 
@@ -124,10 +123,10 @@ func (h *ScrubHandler) Handle(ctx context.Context, data interface{}) (interface{
 
 type BalanceHandler struct {
 	logger *zap.Logger
-	db     *sql.DB
+	db     *database.Database
 }
 
-func NewBalanceHandler(logger *zap.Logger, db *sql.DB) *BalanceHandler {
+func NewBalanceHandler(logger *zap.Logger, db *database.Database) *BalanceHandler {
 	return &BalanceHandler{
 		logger: logger,
 		db:     db,
@@ -146,7 +145,7 @@ func (h *BalanceHandler) Handle(ctx context.Context, data interface{}) (interfac
 	results := make([]map[string]string, 0)
 
 	for _, m := range mounts {
-		logID, err := database.InsertJobLog(h.db, database.JobLogRecord{
+		logID, err := h.db.InsertJobLog(database.JobLogRecord{
 			JobType:    "balance",
 			Mountpoint: m.Mountpoint,
 			TargetName: m.Label,
@@ -175,7 +174,7 @@ func (h *BalanceHandler) Handle(ctx context.Context, data interface{}) (interfac
 			)
 		}
 
-		if err := database.UpdateJobLog(h.db, logID, status, output, errMsg); err != nil {
+		if err := h.db.UpdateJobLog(logID, status, output, errMsg); err != nil {
 			h.logger.Error("failed to update balance log", zap.Error(err))
 		}
 

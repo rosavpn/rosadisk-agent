@@ -1,12 +1,13 @@
 package config
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
+
+	"rosadisk-agent/internal/database"
 )
 
-func InitConfig(db *sql.DB) error {
+func InitConfig(db *database.Database) error {
 	_, err := db.Exec(`REPLACE INTO global_config (id, data) VALUES (1, ?)`,
 		jsonString(DefaultConfig()),
 	)
@@ -16,7 +17,7 @@ func InitConfig(db *sql.DB) error {
 	return nil
 }
 
-func GetConfig(db *sql.DB) (GlobalConfig, error) {
+func GetConfig(db *database.Database) (GlobalConfig, error) {
 	var raw string
 	err := db.QueryRow(`SELECT data FROM global_config WHERE id = 1`).Scan(&raw)
 	if err != nil {
@@ -31,7 +32,7 @@ func GetConfig(db *sql.DB) (GlobalConfig, error) {
 	return cfg, nil
 }
 
-func SaveConfig(db *sql.DB, cfg GlobalConfig) error {
+func SaveConfig(db *database.Database, cfg GlobalConfig) error {
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal global config: %w", err)

@@ -2,10 +2,10 @@ package worker
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/worker/event"
 	"rosadisk-agent/internal/worker/handler"
 )
@@ -33,7 +33,7 @@ type EventBus struct {
 	dispatcher     *Dispatcher
 }
 
-func NewEventBus(logger *zap.Logger, db *sql.DB) *EventBus {
+func NewEventBus(logger *zap.Logger, db *database.Database) *EventBus {
 	syncChan := make(chan event.Event, 100)
 	asyncChan := make(chan event.Event, 100)
 	concurrentChan := make(chan event.Event, 100)
