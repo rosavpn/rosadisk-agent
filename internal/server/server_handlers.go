@@ -143,7 +143,6 @@ func (s *Server) ListDisks(ctx echo.Context) error {
 	s.logger.Debug("received list disks request")
 
 	result := s.emitEvent(event.ActionDiskList, event.DiskListRequest{})
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -166,7 +165,6 @@ func (s *Server) ListFilesystems(ctx echo.Context) error {
 	s.logger.Debug("received list filesystems request")
 
 	result := s.emitEvent(event.ActionFilesystemList, event.FilesystemListRequest{})
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -203,7 +201,6 @@ func (s *Server) CreateFilesystem(ctx echo.Context) error {
 	}
 
 	result := s.emitEvent(event.ActionFilesystemCreate, eventReq)
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
@@ -226,7 +223,6 @@ func (s *Server) ListMounts(ctx echo.Context) error {
 	s.logger.Debug("received list mounts request")
 
 	result := s.emitEvent(event.ActionMountList, event.MountListRequest{})
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -261,7 +257,6 @@ func (s *Server) MountFilesystem(ctx echo.Context) error {
 	}
 
 	result := s.emitEvent(event.ActionMountCreate, eventReq)
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
@@ -284,7 +279,6 @@ func (s *Server) ListSubvolumes(ctx echo.Context) error {
 	s.logger.Debug("received list subvolumes request")
 
 	result := s.emitEvent(event.ActionSubvolumeList, event.SubvolumeListRequest{})
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
@@ -368,7 +362,6 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 	}
 
 	result := s.emitEvent(event.ActionSubvolumeCreate, eventReq)
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusBadRequest, gen.ErrorResponse{
@@ -395,7 +388,6 @@ func (s *Server) GetSubvolume(ctx echo.Context, id openapi_types.UUID) error {
 	}
 
 	result := s.emitEvent(event.ActionSubvolumeGet, eventReq)
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{
@@ -422,7 +414,6 @@ func (s *Server) DeleteSubvolume(ctx echo.Context, id openapi_types.UUID) error 
 	}
 
 	result := s.emitEvent(event.ActionSubvolumeDelete, eventReq)
-	
 
 	if result.Error != nil {
 		return ctx.JSON(http.StatusNotFound, gen.ErrorResponse{
