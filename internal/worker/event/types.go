@@ -105,6 +105,34 @@ type SnapshotRequest struct{}
 
 type DefragRequest struct{}
 
-type ScrubRequest struct{}
+type ScrubCheckRequest struct {
+	EventBus AsyncEventPublisher `json:"-"`
+}
 
-type BalanceRequest struct{}
+type BalanceCheckRequest struct {
+	EventBus AsyncEventPublisher `json:"-"`
+}
+
+type ScrubDiskRequest struct {
+	Mountpoint string `json:"mountpoint"`
+	UUID       string `json:"uuid"`
+	Label      string `json:"label"`
+}
+
+type BalanceDiskRequest struct {
+	Mountpoint string `json:"mountpoint"`
+	UUID       string `json:"uuid"`
+	Label      string `json:"label"`
+}
+
+type SyncEventPublisher interface {
+	PublishSync(action ActionType, data interface{}) Result
+}
+
+type AsyncEventPublisher interface {
+	PublishAsync(action ActionType, data interface{})
+}
+
+type ConcurrentEventPublisher interface {
+	PublishConcurrent(action ActionType, data interface{})
+}
