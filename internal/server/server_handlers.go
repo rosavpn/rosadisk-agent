@@ -422,3 +422,29 @@ func (s *Server) DeleteSubvolume(ctx echo.Context, id openapi_types.UUID) error 
 
 	return ctx.NoContent(http.StatusNoContent)
 }
+
+func (s *Server) ListSubvolumeSnapshots(ctx echo.Context, id openapi_types.UUID) error {
+	s.logger.Debug("received list subvolume snapshots request", zap.String("id", id.String()))
+
+	eventReq := event.SnapshotListRequest{
+		SubvolumeID: id.String(),
+	}
+
+	result := s.emitEvent(event.ActionSnapshotList, eventReq)
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	snapshots, ok := result.Data.([]event.SnapshotInfo)
+	if !ok {
+		s.logger.Error("unexpected response type from snapshot list handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, snapshots)
+}
