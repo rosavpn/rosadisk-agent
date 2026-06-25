@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.18.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.17.0...v0.18.0) (2026-06-25)
+
+
+### Features
+
+* **api:** add GET /v1/subvolumes/{id}/snapshots endpoint ([9750230](https://github.com/rosavpn/rosadisk-agent/commit/975023074c8f3fa06d2d94c1ea0a966ce4a4c5fc))
+* **db:** add snapshots table and queries ([513a106](https://github.com/rosavpn/rosadisk-agent/commit/513a1067b675587327d5fcf2c22aed3c94d0e1c4))
+* **handler:** add snapshot check, subvolume, and cleanup handlers ([34e25e4](https://github.com/rosavpn/rosadisk-agent/commit/34e25e41a71e88d6f838ffa55ca0dfb7f3119f66))
+* **handler:** add SnapshotListHandler ([b25c100](https://github.com/rosavpn/rosadisk-agent/commit/b25c100dbd55767f0d0b27293ada8f329429ebd2))
+* **server:** implement ListSubvolumeSnapshots handler ([a74b472](https://github.com/rosavpn/rosadisk-agent/commit/a74b472f6c62f29c376776ab268b2d36ac76f0f2))
+* snapshot implementation ([a7b5446](https://github.com/rosavpn/rosadisk-agent/commit/a7b54462d9c8a13e9c919e720b52ad218ee54eb8))
+* **storage:** add read-only snapshot creation helper ([b42906a](https://github.com/rosavpn/rosadisk-agent/commit/b42906a6b87d7068853615a61dd7f947526c77ff))
+* **worker:** add snapshot check, subvolume, and cleanup request types ([fb723b5](https://github.com/rosavpn/rosadisk-agent/commit/fb723b538fafd9a69b325f9e7c64f9d0999b2553))
+* **worker:** add snapshot list action and types ([496f57a](https://github.com/rosavpn/rosadisk-agent/commit/496f57a0896d8284de54d51f85a5063ebe984f41))
+* **worker:** rename snapshot action to check and add per-subvolume variants ([5c2b03b](https://github.com/rosavpn/rosadisk-agent/commit/5c2b03b71196ec59b096eff60a6ee475f86388d2))
+
+
+### Bug Fixes
+
+* **scheduler:** per-subvolume frequency filtering for snapshot scheduling ([edbbaf0](https://github.com/rosavpn/rosadisk-agent/commit/edbbaf0bfaba09d0103dc0d0de9293c91abb9e9d))
+
 ## [0.17.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.16.0...v0.17.0) (2026-06-25)
 
 
