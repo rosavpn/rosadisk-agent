@@ -23,6 +23,7 @@ func runMigrations(db *sql.DB) error {
 			backup_full_enabled INTEGER DEFAULT 0,
 			backup_full_frequency TEXT,
 			defrag INTEGER DEFAULT 0,
+			defrag_frequency TEXT,
 			nfs INTEGER DEFAULT 0,
 			smb INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP

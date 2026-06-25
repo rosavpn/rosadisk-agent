@@ -22,6 +22,7 @@ type SubvolumeRecord struct {
 	BackupFullEnabled          bool
 	BackupFullFrequency        string
 	Defrag                     bool
+	DefragFrequency            string
 	NFS                        bool
 	SMB                        bool
 	CreatedAt                  time.Time
@@ -43,6 +44,7 @@ type CreateSubvolumeRecord struct {
 	BackupFullEnabled          bool
 	BackupFullFrequency        string
 	Defrag                     bool
+	DefragFrequency            string
 	NFS                        bool
 	SMB                        bool
 }
@@ -56,7 +58,7 @@ func (db *Database) ListSubvolumes() ([]SubvolumeRecord, error) {
 		       snapshot_enabled, snapshot_frequency, snapshot_retention,
 		       backup_incremental_enabled, backup_incremental_frequency,
 		       backup_full_enabled, backup_full_frequency,
-		       defrag, nfs, smb, created_at
+		       defrag, defrag_frequency, nfs, smb, created_at
 		FROM subvolumes
 		ORDER BY created_at DESC
 	`)
@@ -74,6 +76,7 @@ func (db *Database) ListSubvolumes() ([]SubvolumeRecord, error) {
 		var backupIncFreq sql.NullString
 		var backupFullEnabled sql.NullBool
 		var backupFullFreq sql.NullString
+		var defragFreq sql.NullString
 		var createdAt string
 
 		err := rows.Scan(
@@ -82,7 +85,7 @@ func (db *Database) ListSubvolumes() ([]SubvolumeRecord, error) {
 			&r.SnapshotEnabled, &snapshotFreq, &snapshotRetention,
 			&backupIncEnabled, &backupIncFreq,
 			&backupFullEnabled, &backupFullFreq,
-			&r.Defrag, &r.NFS, &r.SMB, &createdAt,
+			&r.Defrag, &defragFreq, &r.NFS, &r.SMB, &createdAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan subvolume: %w", err)
@@ -101,6 +104,9 @@ func (db *Database) ListSubvolumes() ([]SubvolumeRecord, error) {
 		if backupFullEnabled.Valid {
 			r.BackupFullEnabled = backupFullEnabled.Bool
 			r.BackupFullFrequency = backupFullFreq.String
+		}
+		if defragFreq.Valid {
+			r.DefragFrequency = defragFreq.String
 		}
 
 		r.CreatedAt, err = time.Parse("2006-01-02 15:04:05", createdAt)
@@ -125,6 +131,7 @@ func (db *Database) GetSubvolume(id string) (*SubvolumeRecord, error) {
 	var backupIncFreq sql.NullString
 	var backupFullEnabled sql.NullBool
 	var backupFullFreq sql.NullString
+	var defragFreq sql.NullString
 	var createdAt string
 
 	err := db.DB.QueryRow(`
@@ -132,7 +139,7 @@ func (db *Database) GetSubvolume(id string) (*SubvolumeRecord, error) {
 		       snapshot_enabled, snapshot_frequency, snapshot_retention,
 		       backup_incremental_enabled, backup_incremental_frequency,
 		       backup_full_enabled, backup_full_frequency,
-		       defrag, nfs, smb, created_at
+		       defrag, defrag_frequency, nfs, smb, created_at
 		FROM subvolumes
 		WHERE id = ?
 	`, id).Scan(
@@ -141,7 +148,7 @@ func (db *Database) GetSubvolume(id string) (*SubvolumeRecord, error) {
 		&r.SnapshotEnabled, &snapshotFreq, &snapshotRetention,
 		&backupIncEnabled, &backupIncFreq,
 		&backupFullEnabled, &backupFullFreq,
-		&r.Defrag, &r.NFS, &r.SMB, &createdAt,
+		&r.Defrag, &defragFreq, &r.NFS, &r.SMB, &createdAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -164,6 +171,9 @@ func (db *Database) GetSubvolume(id string) (*SubvolumeRecord, error) {
 		r.BackupFullEnabled = backupFullEnabled.Bool
 		r.BackupFullFrequency = backupFullFreq.String
 	}
+	if defragFreq.Valid {
+		r.DefragFrequency = defragFreq.String
+	}
 
 	r.CreatedAt, err = time.Parse("2006-01-02 15:04:05", createdAt)
 	if err != nil {
@@ -183,15 +193,15 @@ func (db *Database) InsertSubvolumeRecord(r CreateSubvolumeRecord) error {
 			snapshot_enabled, snapshot_frequency, snapshot_retention,
 			backup_incremental_enabled, backup_incremental_frequency,
 			backup_full_enabled, backup_full_frequency,
-			defrag, nfs, smb
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			defrag, defrag_frequency, nfs, smb
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		r.ID, r.Name, r.FsUUID, r.Path, r.Compression,
 		r.QuotaEnabled, r.QuotaLimit,
 		r.SnapshotEnabled, r.SnapshotFrequency, r.SnapshotRetention,
 		r.BackupIncrementalEnabled, r.BackupIncrementalFrequency,
 		r.BackupFullEnabled, r.BackupFullFrequency,
-		r.Defrag, r.NFS, r.SMB,
+		r.Defrag, r.DefragFrequency, r.NFS, r.SMB,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to persist subvolume: %w", err)

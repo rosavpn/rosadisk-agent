@@ -332,13 +332,21 @@ func (s *Server) CreateSubvolume(ctx echo.Context) error {
 		fullFreq = string(*req.Backups.Full.Frequency)
 	}
 
+	var defragFreq string
+	if req.Defrag.Frequency != nil {
+		defragFreq = string(*req.Defrag.Frequency)
+	}
+
 	eventReq := event.CreateSubvolumeRequest{
 		Name:        req.Name,
 		FsUUID:      req.FsUuid.String(),
 		Compression: req.Compression,
-		Defrag:      req.Defrag,
-		NFS:         req.Nfs,
-		SMB:         req.Smb,
+		Defrag: event.DefragConfig{
+			Enabled:   req.Defrag.Enabled,
+			Frequency: defragFreq,
+		},
+		NFS: req.Nfs,
+		SMB: req.Smb,
 		Quota: event.QuotaConfig{
 			Enabled: req.Quota.Enabled,
 			Limit:   limit,

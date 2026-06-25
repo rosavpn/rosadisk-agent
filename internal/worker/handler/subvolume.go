@@ -54,7 +54,10 @@ func (h *SubvolumeHandler) Handle(ctx context.Context, data interface{}) (interf
 				Incremental: toBackupSchedule(r.BackupIncrementalEnabled, r.BackupIncrementalFrequency),
 				Full:        toBackupSchedule(r.BackupFullEnabled, r.BackupFullFrequency),
 			},
-			Defrag:    r.Defrag,
+			Defrag: event.DefragConfig{
+				Enabled:   r.Defrag,
+				Frequency: r.DefragFrequency,
+			},
 			NFS:       r.NFS,
 			SMB:       r.SMB,
 			CreatedAt: r.CreatedAt.Format(time.RFC3339),
@@ -121,7 +124,8 @@ func (h *SubvolumeCreateHandler) Handle(ctx context.Context, data interface{}) (
 		BackupIncrementalFrequency: req.Backups.Incremental.Frequency,
 		BackupFullEnabled:          req.Backups.Full.Enabled,
 		BackupFullFrequency:        req.Backups.Full.Frequency,
-		Defrag:                     req.Defrag,
+		Defrag:                     req.Defrag.Enabled,
+		DefragFrequency:            req.Defrag.Frequency,
 		NFS:                        req.NFS,
 		SMB:                        req.SMB,
 	}
@@ -198,7 +202,10 @@ func (h *SubvolumeGetHandler) Handle(ctx context.Context, data interface{}) (int
 			Incremental: toBackupSchedule(r.BackupIncrementalEnabled, r.BackupIncrementalFrequency),
 			Full:        toBackupSchedule(r.BackupFullEnabled, r.BackupFullFrequency),
 		},
-		Defrag:    r.Defrag,
+		Defrag: event.DefragConfig{
+			Enabled:   r.Defrag,
+			Frequency: r.DefragFrequency,
+		},
 		NFS:       r.NFS,
 		SMB:       r.SMB,
 		CreatedAt: r.CreatedAt.Format(time.RFC3339),

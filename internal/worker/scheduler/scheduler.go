@@ -81,7 +81,7 @@ func (s *Scheduler) checkAndEmit() {
 
 	s.checkVolumeJob(event.ActionBackup, cfg.Backup, now)
 	s.checkSnapshotJob(cfg.Snapshot)
-	s.checkVolumeJob(event.ActionDefrag, cfg.Defrag, now)
+	s.checkDefragJob(cfg.Defrag)
 	s.checkDiskJob(event.ActionScrubCheck, cfg.Scrub, now)
 	s.checkDiskJob(event.ActionBalanceCheck, cfg.Balance, now)
 }
@@ -166,6 +166,20 @@ func (s *Scheduler) checkDiskJob(action event.ActionType, schedule config.DiskJo
 	}
 }
 
+func (s *Scheduler) checkDefragJob(schedule config.VolumeJobSchedule) {
+	if !schedule.Enabled {
+		return
+	}
+	s.eventBus.PublishConcurrent(event.ActionDefragCheck, event.DefragCheckRequest{
+		EventBus: s.eventBus,
+		Schedule: event.DefragSchedule{
+			Time:       schedule.Time,
+			WeeklyDay:  schedule.WeeklyDay,
+			MonthlyDay: schedule.MonthlyDay,
+		},
+	})
+}
+
 func (s *Scheduler) checkSnapshotJob(schedule config.VolumeJobSchedule) {
 	if !schedule.Enabled {
 		return
@@ -186,8 +200,6 @@ func (s *Scheduler) getVolumeRequest(action event.ActionType) interface{} {
 	switch action {
 	case event.ActionBackup:
 		return event.BackupRequest{}
-	case event.ActionDefrag:
-		return event.DefragRequest{}
 	default:
 		return event.BackupRequest{}
 	}
