@@ -154,6 +154,13 @@ type SnapshotInfo struct {
 
 type DefragCheckRequest struct {
 	EventBus AsyncEventPublisher
+	Schedule DefragSchedule
+}
+
+type DefragSchedule struct {
+	Time       string
+	WeeklyDay  string
+	MonthlyDay int
 }
 
 type DefragSubvolumeRequest struct {
