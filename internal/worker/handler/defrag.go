@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -31,6 +32,11 @@ func (h *DefragCheckHandler) Handle(ctx context.Context, data interface{}) (inte
 
 	h.logger.Info("handling defrag check event")
 
+	now := time.Now()
+	nowHHMM := now.Format("15:04")
+	weekday := strings.ToLower(now.Weekday().String())
+	day := now.Day()
+
 	subvolumes, err := h.db.ListSubvolumes()
 	if err != nil {
 		h.logger.Error("failed to list subvolumes for defrag", zap.Error(err))
@@ -40,6 +46,10 @@ func (h *DefragCheckHandler) Handle(ctx context.Context, data interface{}) (inte
 	count := 0
 	for _, sv := range subvolumes {
 		if !sv.Defrag {
+			continue
+		}
+
+		if !defragDue(sv.DefragFrequency, req.Schedule, nowHHMM, weekday, day) {
 			continue
 		}
 
@@ -130,4 +140,17 @@ func (h *DefragSubvolumeHandler) Handle(ctx context.Context, data interface{}) (
 	}
 
 	return map[string]string{"status": status, "output": output}, nil
+}
+
+func defragDue(frequency string, schedule event.DefragSchedule, nowHHMM, weekday string, day int) bool {
+	switch strings.ToLower(frequency) {
+	case "daily":
+		return schedule.Time == nowHHMM
+	case "weekly":
+		return schedule.Time == nowHHMM && schedule.WeeklyDay == weekday
+	case "monthly":
+		return schedule.Time == nowHHMM && schedule.MonthlyDay == day
+	default:
+		return false
+	}
 }
