@@ -29,10 +29,16 @@ func GetConfig(db *database.Database) (GlobalConfig, error) {
 		return GlobalConfig{}, fmt.Errorf("failed to parse global config: %w", err)
 	}
 
+	cfg.Encryption.Active = HasE2EEKey()
+
 	return cfg, nil
 }
 
 func SaveConfig(db *database.Database, cfg GlobalConfig) error {
+	cfg.Encryption.Active = false
+	delete(cfg.BackupStorage.Options, "access_key")
+	delete(cfg.BackupStorage.Options, "secret_key")
+
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal global config: %w", err)
