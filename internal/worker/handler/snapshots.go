@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/storage"
 	"rosadisk-agent/internal/worker/event"
@@ -35,12 +34,6 @@ func (h *SnapshotCheckHandler) Handle(ctx context.Context, data interface{}) (in
 		return nil, errInvalidRequest
 	}
 
-	cfg, err := config.GetConfig(h.db)
-	if err != nil {
-		h.logger.Error("failed to read config for snapshot check", zap.Error(err))
-		return nil, err
-	}
-
 	h.logger.Info("handling snapshot check event")
 
 	subvolumes, err := h.db.ListSubvolumes()
@@ -61,7 +54,7 @@ func (h *SnapshotCheckHandler) Handle(ctx context.Context, data interface{}) (in
 			continue
 		}
 
-		if !snapshotDue(sv.SnapshotFrequency, cfg.Snapshot, minute, timeHHMM, weekday, day) {
+		if !snapshotDue(sv.SnapshotFrequency, req.Snapshot, minute, timeHHMM, weekday, day) {
 			continue
 		}
 
@@ -91,7 +84,7 @@ func (h *SnapshotCheckHandler) Handle(ctx context.Context, data interface{}) (in
 	return map[string]interface{}{"status": "snapshot jobs dispatched", "count": count}, nil
 }
 
-func snapshotDue(frequency string, schedule config.VolumeJobSchedule, minute int, timeHHMM, weekday string, day int) bool {
+func snapshotDue(frequency string, schedule event.SnapshotSchedule, minute int, timeHHMM, weekday string, day int) bool {
 	switch strings.ToLower(frequency) {
 	case "hourly":
 		return schedule.HourlyMinute == minute

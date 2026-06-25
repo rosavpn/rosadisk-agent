@@ -103,6 +103,14 @@ type BackupRequest struct{}
 
 type SnapshotCheckRequest struct {
 	EventBus ConcurrentEventPublisher `json:"-"`
+	Snapshot SnapshotSchedule         `json:"-"`
+}
+
+type SnapshotSchedule struct {
+	HourlyMinute int
+	Time         string
+	WeeklyDay    string
+	MonthlyDay   int
 }
 
 type SnapshotSubvolumeRequest struct {

@@ -171,7 +171,15 @@ func (s *Scheduler) checkSnapshotJob(schedule config.VolumeJobSchedule) {
 		return
 	}
 
-	s.eventBus.PublishAsync(event.ActionSnapshotCheck, event.SnapshotCheckRequest{EventBus: s.eventBus})
+	s.eventBus.PublishAsync(event.ActionSnapshotCheck, event.SnapshotCheckRequest{
+		EventBus: s.eventBus,
+		Snapshot: event.SnapshotSchedule{
+			HourlyMinute: schedule.HourlyMinute,
+			Time:         schedule.Time,
+			WeeklyDay:    schedule.WeeklyDay,
+			MonthlyDay:   schedule.MonthlyDay,
+		},
+	})
 }
 
 func (s *Scheduler) getVolumeRequest(action event.ActionType) interface{} {
