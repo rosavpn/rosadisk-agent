@@ -162,7 +162,7 @@ func (s *Scheduler) checkDiskJob(action event.ActionType, schedule config.DiskJo
 
 	if shouldEmit {
 		s.lastRun[key] = getTimeKey(now, key)
-		s.eventBus.PublishAsync(action, s.getDiskRequest(action))
+		s.eventBus.PublishConcurrent(action, s.getDiskRequest(action))
 	}
 }
 
@@ -171,7 +171,7 @@ func (s *Scheduler) checkSnapshotJob(schedule config.VolumeJobSchedule) {
 		return
 	}
 
-	s.eventBus.PublishAsync(event.ActionSnapshotCheck, event.SnapshotCheckRequest{
+	s.eventBus.PublishConcurrent(event.ActionSnapshotCheck, event.SnapshotCheckRequest{
 		EventBus: s.eventBus,
 		Snapshot: event.SnapshotSchedule{
 			HourlyMinute: schedule.HourlyMinute,
