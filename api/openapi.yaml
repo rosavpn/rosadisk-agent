@@ -606,6 +606,17 @@ components:
           pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
           example: 550e8400-e29b-41d4-a716-446655440000
 
+    DefragConfig:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+        frequency:
+          type: string
+          enum: ["daily", "weekly", "monthly"]
+
     Subvolume:
       type: object
       required:
@@ -634,7 +645,7 @@ components:
         backups:
           $ref: "#/components/schemas/BackupConfig"
         defrag:
-          type: boolean
+          $ref: "#/components/schemas/DefragConfig"
         nfs:
           type: boolean
         smb:
@@ -720,7 +731,7 @@ components:
         backups:
           $ref: "#/components/schemas/BackupConfig"
         defrag:
-          type: boolean
+          $ref: "#/components/schemas/DefragConfig"
         nfs:
           type: boolean
         smb:
