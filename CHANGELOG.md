@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.18.0...v0.19.0) (2026-06-25)
+
+
+### Features
+
+* **scheduler:** emit check events via concurrent channel ([51c5833](https://github.com/rosavpn/rosadisk-agent/commit/51c583399634a85332f3355e0c270fd06c965b40))
+
 ## [0.18.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.17.0...v0.18.0) (2026-06-25)
 
 
