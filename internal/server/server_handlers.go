@@ -119,12 +119,52 @@ func (s *Server) UpdateConfig(ctx echo.Context) error {
 		})
 	}
 
+	options := make(map[string]string)
+	if req.BackupStorage.Options != nil {
+		options = *req.BackupStorage.Options
+	}
+
+	if accessKey := options["access_key"]; accessKey != "" {
+		if err := config.WriteS3AccessKey(accessKey); err != nil {
+			s.logger.Error("failed to write s3 access key", zap.Error(err))
+			return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+				Error: "failed to store s3 access key",
+			})
+		}
+		delete(options, "access_key")
+	}
+	if secretKey := options["secret_key"]; secretKey != "" {
+		if err := config.WriteS3SecretKey(secretKey); err != nil {
+			s.logger.Error("failed to write s3 secret key", zap.Error(err))
+			return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+				Error: "failed to store s3 secret key",
+			})
+		}
+		delete(options, "secret_key")
+	}
+
+	if req.Encryption.Passphrase != nil && *req.Encryption.Passphrase != "" {
+		if err := config.WriteE2EEKey(*req.Encryption.Passphrase); err != nil {
+			s.logger.Error("failed to write e2ee key", zap.Error(err))
+			return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+				Error: "failed to store e2ee key",
+			})
+		}
+	}
+
 	internal := config.GlobalConfig{
 		Backup:   toVolumeJobSchedule(req.Backup),
 		Snapshot: toVolumeJobSchedule(req.Snapshot),
 		Defrag:   toVolumeJobSchedule(req.Defrag),
 		Scrub:    toDiskJobSchedule(req.Scrub),
 		Balance:  toDiskJobSchedule(req.Balance),
+		BackupStorage: config.BackupStorageConfig{
+			Type:    req.BackupStorage.Type,
+			Options: options,
+		},
+		Encryption: config.EncryptionConfig{
+			Active: config.HasE2EEKey(),
+		},
 	}
 
 	if err := config.SaveConfig(s.DB, internal); err != nil {
