@@ -170,7 +170,14 @@ func (s *Scheduler) checkDefragJob(schedule config.VolumeJobSchedule) {
 	if !schedule.Enabled {
 		return
 	}
-	s.eventBus.PublishConcurrent(event.ActionDefragCheck, event.DefragCheckRequest{EventBus: s.eventBus})
+	s.eventBus.PublishConcurrent(event.ActionDefragCheck, event.DefragCheckRequest{
+		EventBus: s.eventBus,
+		Schedule: event.DefragSchedule{
+			Time:       schedule.Time,
+			WeeklyDay:  schedule.WeeklyDay,
+			MonthlyDay: schedule.MonthlyDay,
+		},
+	})
 }
 
 func (s *Scheduler) checkSnapshotJob(schedule config.VolumeJobSchedule) {
