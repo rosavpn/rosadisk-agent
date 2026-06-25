@@ -17,8 +17,10 @@ const (
 	ActionBackup           ActionType = "background:backup"
 	ActionSnapshot         ActionType = "background:snapshot"
 	ActionDefrag           ActionType = "background:defrag"
-	ActionScrub            ActionType = "background:scrub"
-	ActionBalance          ActionType = "background:balance"
+	ActionScrubCheck       ActionType = "background:scrub:check"
+	ActionBalanceCheck     ActionType = "background:balance:check"
+	ActionScrubDisk        ActionType = "background:scrub:disk"
+	ActionBalanceDisk      ActionType = "background:balance:disk"
 	ActionUploadBackup     ActionType = "upload:backup"
 	ActionUploadSnapshot   ActionType = "upload:snapshot"
 )
