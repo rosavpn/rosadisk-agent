@@ -148,7 +148,7 @@ type SnapshotInfo struct {
 }
 
 type DefragCheckRequest struct {
-	EventBus ConcurrentEventPublisher
+	EventBus AsyncEventPublisher
 }
 
 type DefragSubvolumeRequest struct {

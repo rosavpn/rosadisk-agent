@@ -23,6 +23,12 @@ func NewDefragCheckHandler(logger *zap.Logger, db *database.Database) *DefragChe
 }
 
 func (h *DefragCheckHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	req, ok := data.(event.DefragCheckRequest)
+	if !ok {
+		h.logger.Error("invalid defrag check request type")
+		return nil, errInvalidRequest
+	}
+
 	h.logger.Info("handling defrag check event")
 
 	subvolumes, err := h.db.ListSubvolumes()
@@ -60,33 +66,68 @@ func (h *DefragCheckHandler) Handle(ctx context.Context, data interface{}) (inte
 			zap.String("name", sv.Name),
 		)
 
-		logID, err := h.db.InsertJobLog(database.JobLogRecord{
-			JobType:     string(event.ActionDefragSubvolume),
-			Mountpoint:  mountpoint,
-			SubvolumeID: sv.ID,
-			TargetName:  sv.Name,
-			Status:      "running",
-			StartedAt:   time.Now(),
+		req.EventBus.PublishAsync(event.ActionDefragSubvolume, event.DefragSubvolumeRequest{
+			ID:         sv.ID,
+			Name:       sv.Name,
+			FsUUID:     sv.FsUUID,
+			SubvolPath: sv.Path,
+			Mountpoint: mountpoint,
 		})
-		if err != nil {
-			h.logger.Error("failed to insert job log", zap.Error(err))
-			continue
-		}
-
-		output, err := storage.DefragmentBtrfs(sv.Path)
-		status := "success"
-		var errMsg string
-		if err != nil {
-			status = "failed"
-			errMsg = err.Error()
-			h.logger.Error("defrag failed", zap.String("subvolume_id", sv.ID), zap.Error(err))
-		}
-
-		if updateErr := h.db.UpdateJobLog(logID, status, output, errMsg); updateErr != nil {
-			h.logger.Error("failed to update job log", zap.Error(updateErr))
-		}
 		count++
 	}
 
-	return map[string]interface{}{"status": "defrag check completed", "count": count}, nil
+	return map[string]interface{}{"status": "defrag jobs dispatched", "count": count}, nil
+}
+
+type DefragSubvolumeHandler struct {
+	logger *zap.Logger
+	db     *database.Database
+}
+
+func NewDefragSubvolumeHandler(logger *zap.Logger, db *database.Database) *DefragSubvolumeHandler {
+	return &DefragSubvolumeHandler{
+		logger: logger,
+		db:     db,
+	}
+}
+
+func (h *DefragSubvolumeHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	req, ok := data.(event.DefragSubvolumeRequest)
+	if !ok {
+		h.logger.Error("invalid defrag subvolume request type")
+		return nil, errInvalidRequest
+	}
+
+	h.logger.Info("running defrag on subvolume",
+		zap.String("subvolume_id", req.ID),
+		zap.String("name", req.Name),
+	)
+
+	logID, err := h.db.InsertJobLog(database.JobLogRecord{
+		JobType:     string(event.ActionDefragSubvolume),
+		Mountpoint:  req.Mountpoint,
+		SubvolumeID: req.ID,
+		TargetName:  req.Name,
+		Status:      "running",
+		StartedAt:   time.Now(),
+	})
+	if err != nil {
+		h.logger.Error("failed to insert job log", zap.Error(err))
+		return nil, err
+	}
+
+	output, err := storage.DefragmentBtrfs(req.SubvolPath)
+	status := "success"
+	var errMsg string
+	if err != nil {
+		status = "failed"
+		errMsg = err.Error()
+		h.logger.Error("defrag failed", zap.String("subvolume_id", req.ID), zap.Error(err))
+	}
+
+	if updateErr := h.db.UpdateJobLog(logID, status, output, errMsg); updateErr != nil {
+		h.logger.Error("failed to update job log", zap.Error(updateErr))
+	}
+
+	return map[string]string{"status": status, "output": output}, nil
 }
