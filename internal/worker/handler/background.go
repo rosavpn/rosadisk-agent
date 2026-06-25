@@ -2,12 +2,14 @@ package handler
 
 import (
 	"context"
-	"time"
+	"errors"
 
 	"go.uber.org/zap"
-	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/storage"
+	"rosadisk-agent/internal/worker/event"
 )
+
+var errInvalidRequest = errors.New("invalid request type")
 
 type BackupHandler struct {
 	logger *zap.Logger
@@ -54,20 +56,24 @@ func (h *DefragHandler) Handle(ctx context.Context, data interface{}) (interface
 	return map[string]string{"status": "defrag completed (dummy)"}, nil
 }
 
-type ScrubHandler struct {
+type ScrubCheckHandler struct {
 	logger *zap.Logger
-	db     *database.Database
 }
 
-func NewScrubHandler(logger *zap.Logger, db *database.Database) *ScrubHandler {
-	return &ScrubHandler{
+func NewScrubCheckHandler(logger *zap.Logger) *ScrubCheckHandler {
+	return &ScrubCheckHandler{
 		logger: logger,
-		db:     db,
 	}
 }
 
-func (h *ScrubHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
-	h.logger.Info("handling scrub event")
+func (h *ScrubCheckHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	req, ok := data.(event.ScrubCheckRequest)
+	if !ok {
+		h.logger.Error("invalid scrub check request type")
+		return nil, errInvalidRequest
+	}
+
+	h.logger.Info("handling scrub check event")
 
 	mounts, err := storage.ListMounts()
 	if err != nil {
@@ -75,66 +81,35 @@ func (h *ScrubHandler) Handle(ctx context.Context, data interface{}) (interface{
 		return nil, err
 	}
 
-	results := make([]map[string]string, 0)
-
 	for _, m := range mounts {
-		logID, err := h.db.InsertJobLog(database.JobLogRecord{
-			JobType:    "scrub",
+		req.EventBus.PublishAsync(event.ActionScrubDisk, event.ScrubDiskRequest{
 			Mountpoint: m.Mountpoint,
-			TargetName: m.Label,
-			Status:     "running",
-			StartedAt:  time.Now(),
-		})
-		if err != nil {
-			h.logger.Error("failed to insert scrub log", zap.Error(err))
-			continue
-		}
-
-		output, err := storage.StartScrub(m.Mountpoint)
-		status := "success"
-		errMsg := ""
-		if err != nil {
-			status = "failed"
-			errMsg = err.Error()
-			h.logger.Error("scrub failed",
-				zap.Error(err),
-				zap.String("mountpoint", m.Mountpoint),
-			)
-		} else {
-			h.logger.Info("scrub completed",
-				zap.String("mountpoint", m.Mountpoint),
-				zap.String("uuid", m.UUID),
-			)
-		}
-
-		if err := h.db.UpdateJobLog(logID, status, output, errMsg); err != nil {
-			h.logger.Error("failed to update scrub log", zap.Error(err))
-		}
-
-		results = append(results, map[string]string{
-			"mountpoint": m.Mountpoint,
-			"uuid":       m.UUID,
-			"status":     status,
+			UUID:       m.UUID,
+			Label:      m.Label,
 		})
 	}
 
-	return results, nil
+	return map[string]string{"status": "scrub jobs dispatched"}, nil
 }
 
-type BalanceHandler struct {
+type BalanceCheckHandler struct {
 	logger *zap.Logger
-	db     *database.Database
 }
 
-func NewBalanceHandler(logger *zap.Logger, db *database.Database) *BalanceHandler {
-	return &BalanceHandler{
+func NewBalanceCheckHandler(logger *zap.Logger) *BalanceCheckHandler {
+	return &BalanceCheckHandler{
 		logger: logger,
-		db:     db,
 	}
 }
 
-func (h *BalanceHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
-	h.logger.Info("handling balance event")
+func (h *BalanceCheckHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	req, ok := data.(event.BalanceCheckRequest)
+	if !ok {
+		h.logger.Error("invalid balance check request type")
+		return nil, errInvalidRequest
+	}
+
+	h.logger.Info("handling balance check event")
 
 	mounts, err := storage.ListMounts()
 	if err != nil {
@@ -142,48 +117,13 @@ func (h *BalanceHandler) Handle(ctx context.Context, data interface{}) (interfac
 		return nil, err
 	}
 
-	results := make([]map[string]string, 0)
-
 	for _, m := range mounts {
-		logID, err := h.db.InsertJobLog(database.JobLogRecord{
-			JobType:    "balance",
+		req.EventBus.PublishAsync(event.ActionBalanceDisk, event.BalanceDiskRequest{
 			Mountpoint: m.Mountpoint,
-			TargetName: m.Label,
-			Status:     "running",
-			StartedAt:  time.Now(),
-		})
-		if err != nil {
-			h.logger.Error("failed to insert balance log", zap.Error(err))
-			continue
-		}
-
-		output, err := storage.StartBalance(m.Mountpoint)
-		status := "success"
-		errMsg := ""
-		if err != nil {
-			status = "failed"
-			errMsg = err.Error()
-			h.logger.Error("balance failed",
-				zap.Error(err),
-				zap.String("mountpoint", m.Mountpoint),
-			)
-		} else {
-			h.logger.Info("balance completed",
-				zap.String("mountpoint", m.Mountpoint),
-				zap.String("uuid", m.UUID),
-			)
-		}
-
-		if err := h.db.UpdateJobLog(logID, status, output, errMsg); err != nil {
-			h.logger.Error("failed to update balance log", zap.Error(err))
-		}
-
-		results = append(results, map[string]string{
-			"mountpoint": m.Mountpoint,
-			"uuid":       m.UUID,
-			"status":     status,
+			UUID:       m.UUID,
+			Label:      m.Label,
 		})
 	}
 
-	return results, nil
+	return map[string]string{"status": "balance jobs dispatched"}, nil
 }
