@@ -4,23 +4,12 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
 	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/worker/event"
 	"rosadisk-agent/internal/worker/handler"
+
+	"go.uber.org/zap"
 )
-
-type SyncEventPublisher interface {
-	PublishSync(action event.ActionType, data interface{}) event.Result
-}
-
-type AsyncEventPublisher interface {
-	PublishAsync(action event.ActionType, data interface{})
-}
-
-type ConcurrentEventPublisher interface {
-	PublishConcurrent(action event.ActionType, data interface{})
-}
 
 type EventBus struct {
 	logger         *zap.Logger

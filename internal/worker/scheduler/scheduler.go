@@ -13,13 +13,9 @@ import (
 	"rosadisk-agent/internal/worker/event"
 )
 
-type AsyncEventPublisher interface {
-	PublishAsync(action event.ActionType, data interface{})
-}
-
 type Scheduler struct {
 	db       *database.Database
-	eventBus AsyncEventPublisher
+	eventBus event.AsyncEventPublisher
 	logger   *zap.Logger
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -27,7 +23,7 @@ type Scheduler struct {
 	lastRun  map[string]string
 }
 
-func NewScheduler(db *database.Database, eventBus AsyncEventPublisher, logger *zap.Logger) *Scheduler {
+func NewScheduler(db *database.Database, eventBus event.AsyncEventPublisher, logger *zap.Logger) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
 		db:       db,
@@ -81,8 +77,8 @@ func (s *Scheduler) checkAndEmit() {
 	s.checkVolumeJob(event.ActionBackup, cfg.Backup, now)
 	s.checkVolumeJob(event.ActionSnapshot, cfg.Snapshot, now)
 	s.checkVolumeJob(event.ActionDefrag, cfg.Defrag, now)
-	s.checkDiskJob(event.ActionScrub, cfg.Scrub, now)
-	s.checkDiskJob(event.ActionBalance, cfg.Balance, now)
+	s.checkDiskJob(event.ActionScrubCheck, cfg.Scrub, now)
+	s.checkDiskJob(event.ActionBalanceCheck, cfg.Balance, now)
 }
 
 func (s *Scheduler) checkVolumeJob(action event.ActionType, schedule config.VolumeJobSchedule, now time.Time) {
@@ -180,12 +176,12 @@ func (s *Scheduler) getVolumeRequest(action event.ActionType) interface{} {
 
 func (s *Scheduler) getDiskRequest(action event.ActionType) interface{} {
 	switch action {
-	case event.ActionScrub:
-		return event.ScrubRequest{}
-	case event.ActionBalance:
-		return event.BalanceRequest{}
+	case event.ActionScrubCheck:
+		return event.ScrubCheckRequest{EventBus: s.eventBus}
+	case event.ActionBalanceCheck:
+		return event.BalanceCheckRequest{EventBus: s.eventBus}
 	default:
-		return event.ScrubRequest{}
+		return event.ScrubCheckRequest{EventBus: s.eventBus}
 	}
 }
 

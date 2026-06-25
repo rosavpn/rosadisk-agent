@@ -7,17 +7,17 @@ import (
 	"go.uber.org/zap"
 	"rosadisk-agent/api/gen"
 	"rosadisk-agent/internal/database"
-	"rosadisk-agent/internal/worker"
+	"rosadisk-agent/internal/worker/event"
 )
 
 type Server struct {
 	Echo     *echo.Echo
 	DB       *database.Database
-	eventPub worker.SyncEventPublisher
+	eventPub event.SyncEventPublisher
 	logger   *zap.Logger
 }
 
-func NewServer(logger *zap.Logger, db *database.Database, eventPub worker.SyncEventPublisher) *Server {
+func NewServer(logger *zap.Logger, db *database.Database, eventPub event.SyncEventPublisher) *Server {
 	e := echo.New()
 
 	s := &Server{
