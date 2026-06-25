@@ -266,3 +266,44 @@ func (h *SnapshotCleanupHandler) Handle(ctx context.Context, data interface{}) (
 
 	return map[string]interface{}{"deleted": deleted}, nil
 }
+
+type SnapshotListHandler struct {
+	logger *zap.Logger
+	db     *database.Database
+}
+
+func NewSnapshotListHandler(logger *zap.Logger, db *database.Database) *SnapshotListHandler {
+	return &SnapshotListHandler{
+		logger: logger,
+		db:     db,
+	}
+}
+
+func (h *SnapshotListHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	req, ok := data.(event.SnapshotListRequest)
+	if !ok {
+		h.logger.Error("invalid snapshot list request type")
+		return nil, errInvalidRequest
+	}
+
+	records, err := h.db.ListSnapshotsBySubvolume(req.SubvolumeID)
+	if err != nil {
+		h.logger.Error("failed to list snapshots", zap.Error(err))
+		return nil, err
+	}
+
+	snapshots := make([]event.SnapshotInfo, len(records))
+	for i, r := range records {
+		snapshots[i] = event.SnapshotInfo{
+			ID:          r.ID,
+			SubvolumeID: r.SubvolumeID,
+			Name:        r.Name,
+			Path:        r.Path,
+			Frequency:   r.Frequency,
+			Size:        r.Size,
+			CreatedAt:   r.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	return snapshots, nil
+}
