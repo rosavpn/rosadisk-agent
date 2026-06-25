@@ -52,7 +52,7 @@ type SubvolumeInfo struct {
 	Quota       QuotaConfig    `json:"quota"`
 	Snapshots   SnapshotConfig `json:"snapshots"`
 	Backups     BackupConfig   `json:"backups"`
-	Defrag      bool           `json:"defrag"`
+	Defrag      DefragConfig   `json:"defrag"`
 	NFS         bool           `json:"nfs"`
 	SMB         bool           `json:"smb"`
 	CreatedAt   string         `json:"created_at"`
@@ -79,11 +79,16 @@ type BackupConfig struct {
 	Full        BackupSchedule `json:"full"`
 }
 
+type DefragConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Frequency string `json:"frequency,omitempty"`
+}
+
 type CreateSubvolumeRequest struct {
 	Name        string
 	FsUUID      string
 	Compression bool
-	Defrag      bool
+	Defrag      DefragConfig
 	NFS         bool
 	SMB         bool
 	Quota       QuotaConfig
