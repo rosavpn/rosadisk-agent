@@ -147,7 +147,17 @@ type SnapshotInfo struct {
 	CreatedAt   string `json:"created_at"`
 }
 
-type DefragRequest struct{}
+type DefragCheckRequest struct {
+	EventBus ConcurrentEventPublisher
+}
+
+type DefragSubvolumeRequest struct {
+	ID         string
+	Name       string
+	FsUUID     string
+	SubvolPath string
+	Mountpoint string
+}
 
 type ScrubCheckRequest struct {
 	EventBus AsyncEventPublisher `json:"-"`

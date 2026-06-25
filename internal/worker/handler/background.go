@@ -26,21 +26,6 @@ func (h *BackupHandler) Handle(ctx context.Context, data interface{}) (interface
 	return map[string]string{"status": "backup completed (dummy)"}, nil
 }
 
-type DefragHandler struct {
-	logger *zap.Logger
-}
-
-func NewDefragHandler(logger *zap.Logger) *DefragHandler {
-	return &DefragHandler{
-		logger: logger,
-	}
-}
-
-func (h *DefragHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
-	h.logger.Info("handling defrag event")
-	return map[string]string{"status": "defrag completed (dummy)"}, nil
-}
-
 type ScrubCheckHandler struct {
 	logger *zap.Logger
 }
