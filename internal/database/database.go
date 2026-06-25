@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 func runMigrations(db *sql.DB) error {
@@ -57,6 +58,12 @@ func runMigrations(db *sql.DB) error {
 	for i, migration := range migrations {
 		if _, err := db.Exec(migration); err != nil {
 			return fmt.Errorf("migration %d failed: %w", i, err)
+		}
+	}
+
+	if _, err := db.Exec(`ALTER TABLE subvolumes ADD COLUMN defrag_frequency TEXT`); err != nil {
+		if !strings.Contains(err.Error(), "duplicate column name") {
+			return fmt.Errorf("migration defrag_frequency failed: %w", err)
 		}
 	}
 
