@@ -31,12 +31,15 @@ func RegisterAll(logger *zap.Logger, db *database.Database) map[event.ActionType
 	handlers[event.ActionSubvolumeGet] = NewSubvolumeGetHandler(logger, db)
 	handlers[event.ActionSubvolumeDelete] = NewSubvolumeDeleteHandler(logger, db)
 	handlers[event.ActionBackup] = NewBackupHandler(logger)
-	handlers[event.ActionSnapshot] = NewSnapshotHandler(logger)
+	handlers[event.ActionSnapshotCheck] = NewSnapshotCheckHandler(logger, db)
 	handlers[event.ActionDefrag] = NewDefragHandler(logger)
 	handlers[event.ActionScrubCheck] = NewScrubCheckHandler(logger)
 	handlers[event.ActionBalanceCheck] = NewBalanceCheckHandler(logger)
 	handlers[event.ActionScrubDisk] = NewScrubDiskHandler(logger, db)
 	handlers[event.ActionBalanceDisk] = NewBalanceDiskHandler(logger, db)
+	handlers[event.ActionSnapshotSubvolume] = NewSnapshotSubvolumeHandler(logger, db)
+	handlers[event.ActionSnapshotCleanup] = NewSnapshotCleanupHandler(logger, db)
+	handlers[event.ActionSnapshotList] = NewSnapshotListHandler(logger, db)
 
 	logger.Info("all handlers registered")
 	return handlers

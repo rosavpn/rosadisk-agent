@@ -26,21 +26,6 @@ func (h *BackupHandler) Handle(ctx context.Context, data interface{}) (interface
 	return map[string]string{"status": "backup completed (dummy)"}, nil
 }
 
-type SnapshotHandler struct {
-	logger *zap.Logger
-}
-
-func NewSnapshotHandler(logger *zap.Logger) *SnapshotHandler {
-	return &SnapshotHandler{
-		logger: logger,
-	}
-}
-
-func (h *SnapshotHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
-	h.logger.Info("handling snapshot event")
-	return map[string]string{"status": "snapshot completed (dummy)"}, nil
-}
-
 type DefragHandler struct {
 	logger *zap.Logger
 }
