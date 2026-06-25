@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.17.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.16.0...v0.17.0) (2026-06-25)
+
+
+### Features
+
+* disk scrub balance events ([be05bc7](https://github.com/rosavpn/rosadisk-agent/commit/be05bc727477fd53e6441766c97aab00b217cc29))
+* **worker:** add per-disk event types for scrub and balance ([9109fb0](https://github.com/rosavpn/rosadisk-agent/commit/9109fb08e59c4c2749f41a35d1c9d2c44e96cfc8))
+* **worker:** add per-disk handlers for scrub and balance ([209b425](https://github.com/rosavpn/rosadisk-agent/commit/209b425ff5816c9eec75f3c38df5639658e21962))
+* **worker:** rename scrub and balance actions to check variants ([6bc509c](https://github.com/rosavpn/rosadisk-agent/commit/6bc509cf87e7c32e568edd84eb9533587d5b674b))
+
 ## [0.16.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.15.1...v0.16.0) (2026-06-24)
 
 
