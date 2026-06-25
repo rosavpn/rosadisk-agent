@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 )
 
+// #nosec G101 -- directory path, not a credential
 const secretsDir = "/var/lib/rosadisk-agent"
 
 func writeSecret(filename, data string) error {
@@ -20,6 +21,7 @@ func writeSecret(filename, data string) error {
 }
 
 func readSecret(filename string) (string, error) {
+	// #nosec G304 -- path is constructed from trusted filename under fixed directory
 	data, err := os.ReadFile(filepath.Join(secretsDir, filename))
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret file %s: %w", filename, err)
