@@ -133,6 +133,20 @@ type SnapshotCleanupRequest struct {
 	Retention  int    `json:"retention"`
 }
 
+type SnapshotListRequest struct {
+	SubvolumeID string `json:"subvolume_id"`
+}
+
+type SnapshotInfo struct {
+	ID          string `json:"id"`
+	SubvolumeID string `json:"subvolume_id"`
+	Name        string `json:"name"`
+	Path        string `json:"path"`
+	Frequency   string `json:"frequency"`
+	Size        int64  `json:"size"`
+	CreatedAt   string `json:"created_at"`
+}
+
 type DefragRequest struct{}
 
 type ScrubCheckRequest struct {

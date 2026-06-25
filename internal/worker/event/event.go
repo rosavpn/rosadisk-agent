@@ -23,6 +23,7 @@ const (
 	ActionBalanceDisk       ActionType = "background:balance:disk"
 	ActionSnapshotSubvolume ActionType = "background:snapshot:subvolume"
 	ActionSnapshotCleanup   ActionType = "background:snapshot:cleanup"
+	ActionSnapshotList      ActionType = "snapshot:list"
 	ActionUploadBackup      ActionType = "upload:backup"
 	ActionUploadSnapshot    ActionType = "upload:snapshot"
 )
