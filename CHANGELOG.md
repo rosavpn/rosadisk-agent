@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.20.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.19.0...v0.20.0) (2026-06-25)
+
+
+### Features
+
+* **api:** add DefragConfig schema with frequency to subvolume API ([ffdacec](https://github.com/rosavpn/rosadisk-agent/commit/ffdacec4abc268dd4afc61556e46980a7975d75f))
+* **db:** add defrag_frequency column to subvolumes ([4996ca5](https://github.com/rosavpn/rosadisk-agent/commit/4996ca50fa913e563738538a33898b18cac5bed8))
+* **handler:** filter defrag subvolumes by frequency ([bf54027](https://github.com/rosavpn/rosadisk-agent/commit/bf54027d3b05e6a100851787a85d330c30bf1f01))
+* **server:** handle DefragConfig in CreateSubvolume endpoint ([81de303](https://github.com/rosavpn/rosadisk-agent/commit/81de303069b578d31d2b422e3e9351030db9226b))
+* **worker:** add DefragConfig type for per-subvolume defrag scheduling ([1f84d2b](https://github.com/rosavpn/rosadisk-agent/commit/1f84d2b8ee8e489833f72374cdd9a866ad123863))
+* **worker:** add DefragSchedule to DefragCheckRequest ([010d160](https://github.com/rosavpn/rosadisk-agent/commit/010d160ef4e9affadb43a70918f0b17892eb46d3))
+* **worker:** implement per-subvolume defrag job with backup skip logic ([801af15](https://github.com/rosavpn/rosadisk-agent/commit/801af15a68482250bcb6ac55aa031024b08c80d3))
+* **worker:** implement per-subvolume defrag job with backup skip logic ([fadbaca](https://github.com/rosavpn/rosadisk-agent/commit/fadbaca6ee199de90514caca4ebdcb0333a89e37))
+
+
+### Bug Fixes
+
+* **storage:** add nosec annotation for gosec G204 in defrag command ([85865fc](https://github.com/rosavpn/rosadisk-agent/commit/85865fc5ae5be0f2847dcc4fd3d327487061a84f))
+* **worker:** emit defrag subvolume events through async channel ([e740280](https://github.com/rosavpn/rosadisk-agent/commit/e740280786cd9682517c82f10bee51bc9be32224))
+
 ## [0.19.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.18.0...v0.19.0) (2026-06-25)
 
 
