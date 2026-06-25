@@ -101,7 +101,29 @@ type SubvolumeDeleteRequest struct {
 
 type BackupRequest struct{}
 
-type SnapshotRequest struct{}
+type SnapshotCheckRequest struct {
+	EventBus ConcurrentEventPublisher `json:"-"`
+}
+
+type SnapshotSubvolumeRequest struct {
+	ID         string                   `json:"id"`
+	Name       string                   `json:"name"`
+	FsUUID     string                   `json:"fs_uuid"`
+	SubvolPath string                   `json:"subvol_path"`
+	Mountpoint string                   `json:"mountpoint"`
+	Frequency  string                   `json:"frequency"`
+	Retention  int                      `json:"retention"`
+	EventBus   ConcurrentEventPublisher `json:"-"`
+}
+
+type SnapshotCleanupRequest struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	FsUUID     string `json:"fs_uuid"`
+	SubvolPath string `json:"subvol_path"`
+	Mountpoint string `json:"mountpoint"`
+	Retention  int    `json:"retention"`
+}
 
 type DefragRequest struct{}
 
