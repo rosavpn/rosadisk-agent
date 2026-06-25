@@ -294,6 +294,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /v1/subvolumes/{id}/snapshots:
+    get:
+      summary: List snapshots for a subvolume
+      operationId: ListSubvolumeSnapshots
+      tags:
+        - snapshots
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of snapshots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SnapshotInfo"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /v1/config:
     get:
       summary: Get global configuration
@@ -809,11 +838,40 @@ components:
           nullable: true
 
     JobLogDetail:
-      allOf:
-        - $ref: "#/components/schemas/JobLogSummary"
-        - type: object
-          properties:
-            output:
-              type: string
-            error:
-              type: string
+       allOf:
+         - $ref: "#/components/schemas/JobLogSummary"
+         - type: object
+           properties:
+             output:
+               type: string
+             error:
+               type: string
+
+    SnapshotInfo:
+      type: object
+      required:
+        - id
+        - subvolume_id
+        - name
+        - path
+        - frequency
+        - size
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        subvolume_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        path:
+          type: string
+        frequency:
+          type: string
+        size:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
