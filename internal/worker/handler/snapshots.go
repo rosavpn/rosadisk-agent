@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/storage"
 	"rosadisk-agent/internal/worker/event"
@@ -33,6 +35,12 @@ func (h *SnapshotCheckHandler) Handle(ctx context.Context, data interface{}) (in
 		return nil, errInvalidRequest
 	}
 
+	cfg, err := config.GetConfig(h.db)
+	if err != nil {
+		h.logger.Error("failed to read config for snapshot check", zap.Error(err))
+		return nil, err
+	}
+
 	h.logger.Info("handling snapshot check event")
 
 	subvolumes, err := h.db.ListSubvolumes()
@@ -41,9 +49,19 @@ func (h *SnapshotCheckHandler) Handle(ctx context.Context, data interface{}) (in
 		return nil, err
 	}
 
+	now := time.Now()
+	minute := now.Minute()
+	timeHHMM := now.Format("15:04")
+	weekday := strings.ToLower(now.Weekday().String())
+	day := now.Day()
+
 	count := 0
 	for _, sv := range subvolumes {
 		if !sv.SnapshotEnabled {
+			continue
+		}
+
+		if !snapshotDue(sv.SnapshotFrequency, cfg.Snapshot, minute, timeHHMM, weekday, day) {
 			continue
 		}
 
@@ -71,6 +89,21 @@ func (h *SnapshotCheckHandler) Handle(ctx context.Context, data interface{}) (in
 	}
 
 	return map[string]interface{}{"status": "snapshot jobs dispatched", "count": count}, nil
+}
+
+func snapshotDue(frequency string, schedule config.VolumeJobSchedule, minute int, timeHHMM, weekday string, day int) bool {
+	switch strings.ToLower(frequency) {
+	case "hourly":
+		return schedule.HourlyMinute == minute
+	case "daily":
+		return schedule.Time == timeHHMM
+	case "weekly":
+		return schedule.Time == timeHHMM && schedule.WeeklyDay == weekday
+	case "monthly":
+		return schedule.Time == timeHHMM && schedule.MonthlyDay == day
+	default:
+		return false
+	}
 }
 
 type SnapshotSubvolumeHandler struct {
