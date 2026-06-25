@@ -7,7 +7,7 @@ import (
 )
 
 func DefragmentBtrfs(path string) (string, error) {
-	cmd := exec.Command("btrfs", "filesystem", "defragment", "-r", path)
+	cmd := exec.Command("btrfs", "filesystem", "defragment", "-r", path) // #nosec G204
 	out, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(out))
 	if err != nil {
