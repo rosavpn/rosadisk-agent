@@ -745,6 +745,8 @@ components:
         - defrag
         - scrub
         - balance
+        - backup_storage
+        - encryption
       properties:
         backup:
           $ref: "#/components/schemas/VolumeJobSchedule"
@@ -756,6 +758,10 @@ components:
           $ref: "#/components/schemas/DiskJobSchedule"
         balance:
           $ref: "#/components/schemas/DiskJobSchedule"
+        backup_storage:
+          $ref: "#/components/schemas/BackupStorageConfig"
+        encryption:
+          $ref: "#/components/schemas/EncryptionConfig"
 
     VolumeJobSchedule:
       type: object
@@ -787,6 +793,32 @@ components:
           maximum: 31
           example: 1
           description: Day of month for monthly frequency
+
+    BackupStorageConfig:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          example: s3
+        options:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            endpoint: "https://s3.example.com"
+            bucket: "rosadisk-backups"
+
+    EncryptionConfig:
+      type: object
+      properties:
+        active:
+          type: boolean
+          readOnly: true
+        passphrase:
+          type: string
+          writeOnly: true
 
     DiskJobSchedule:
       type: object

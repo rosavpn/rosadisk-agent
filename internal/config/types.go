@@ -1,11 +1,22 @@
 package config
 
 type GlobalConfig struct {
-	Backup   VolumeJobSchedule `json:"backup"`
-	Snapshot VolumeJobSchedule `json:"snapshot"`
-	Defrag   VolumeJobSchedule `json:"defrag"`
-	Scrub    DiskJobSchedule   `json:"scrub"`
-	Balance  DiskJobSchedule   `json:"balance"`
+	Backup        VolumeJobSchedule   `json:"backup"`
+	Snapshot      VolumeJobSchedule   `json:"snapshot"`
+	Defrag        VolumeJobSchedule   `json:"defrag"`
+	Scrub         DiskJobSchedule     `json:"scrub"`
+	Balance       DiskJobSchedule     `json:"balance"`
+	BackupStorage BackupStorageConfig `json:"backup_storage"`
+	Encryption    EncryptionConfig    `json:"encryption"`
+}
+
+type BackupStorageConfig struct {
+	Type    string            `json:"type"`
+	Options map[string]string `json:"options"`
+}
+
+type EncryptionConfig struct {
+	Active bool `json:"active"`
 }
 
 type VolumeJobSchedule struct {
@@ -60,6 +71,13 @@ func DefaultConfig() GlobalConfig {
 			Time:       "05:00",
 			DayOfWeek:  "sunday",
 			DayOfMonth: 1,
+		},
+		BackupStorage: BackupStorageConfig{
+			Type:    "",
+			Options: map[string]string{},
+		},
+		Encryption: EncryptionConfig{
+			Active: false,
 		},
 	}
 }
