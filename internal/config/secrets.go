@@ -51,11 +51,11 @@ func ReadE2EEKey() (string, error) {
 }
 
 func WriteS3AccessKey(key string) error {
-	return writeSecret("s3_access_key", key)
+	return writeSecret("aws_access_key", key)
 }
 
 func WriteS3SecretKey(key string) error {
-	return writeSecret("s3_secret_key", key)
+	return writeSecret("aws_secret_key", key)
 }
 
 func HasE2EEKey() bool {
@@ -66,10 +66,10 @@ func ClearSecrets() error {
 	if err := deleteSecret("e2ee_key"); err != nil {
 		return err
 	}
-	if err := deleteSecret("s3_access_key"); err != nil {
+	if err := deleteSecret("aws_access_key"); err != nil {
 		return err
 	}
-	if err := deleteSecret("s3_secret_key"); err != nil {
+	if err := deleteSecret("aws_secret_key"); err != nil {
 		return err
 	}
 	return nil
