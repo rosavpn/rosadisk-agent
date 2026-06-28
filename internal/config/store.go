@@ -36,8 +36,8 @@ func GetConfig(db *database.Database) (GlobalConfig, error) {
 
 func SaveConfig(db *database.Database, cfg GlobalConfig) error {
 	cfg.Encryption.Active = false
-	delete(cfg.BackupStorage.Options, "access_key")
-	delete(cfg.BackupStorage.Options, "secret_key")
+	delete(cfg.BackupStorage.Options, "aws_access_key")
+	delete(cfg.BackupStorage.Options, "aws_secret_key")
 
 	data, err := json.Marshal(cfg)
 	if err != nil {

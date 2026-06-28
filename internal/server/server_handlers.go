@@ -124,23 +124,23 @@ func (s *Server) UpdateConfig(ctx echo.Context) error {
 		options = *req.BackupStorage.Options
 	}
 
-	if accessKey := options["access_key"]; accessKey != "" {
+	if accessKey := options["aws_access_key"]; accessKey != "" {
 		if err := config.WriteS3AccessKey(accessKey); err != nil {
 			s.logger.Error("failed to write s3 access key", zap.Error(err))
 			return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
 				Error: "failed to store s3 access key",
 			})
 		}
-		delete(options, "access_key")
+		delete(options, "aws_access_key")
 	}
-	if secretKey := options["secret_key"]; secretKey != "" {
+	if secretKey := options["aws_secret_key"]; secretKey != "" {
 		if err := config.WriteS3SecretKey(secretKey); err != nil {
 			s.logger.Error("failed to write s3 secret key", zap.Error(err))
 			return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
 				Error: "failed to store s3 secret key",
 			})
 		}
-		delete(options, "secret_key")
+		delete(options, "aws_secret_key")
 	}
 
 	if req.Encryption.Passphrase != nil && *req.Encryption.Passphrase != "" {
