@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.21.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.20.0...v0.21.0) (2026-06-28)
+
+
+### Features
+
+* **api:** add BackupStorageConfig and EncryptionConfig schemas ([1915617](https://github.com/rosavpn/rosadisk-agent/commit/1915617516b0b339aa3b35f739dbc89a13c08512))
+* backup config ([7b2d479](https://github.com/rosavpn/rosadisk-agent/commit/7b2d4793a5a7836e4de62a291792e066dbfa8cc8))
+* **config:** add BackupStorage and Encryption to GlobalConfig ([df66932](https://github.com/rosavpn/rosadisk-agent/commit/df6693244954060f11778d0e076a3ef4cd2a4241))
+* **config:** add secret file management for e2ee and s3 keys ([7e45075](https://github.com/rosavpn/rosadisk-agent/commit/7e450757c279f3bf58c599a6bd9d595c09521dc0))
+* **server:** handle backup storage and encryption in config endpoints ([de7e23d](https://github.com/rosavpn/rosadisk-agent/commit/de7e23d275a7594a121464ab72e955795caf2ce4))
+
+
+### Bug Fixes
+
+* **config:** add nosec annotations for gosec false positives ([1657327](https://github.com/rosavpn/rosadisk-agent/commit/165732767c0b5c0f30ccd5c9dea840c09e170bf3))
+
 ## [0.20.0](https://github.com/rosavpn/rosadisk-agent/compare/v0.19.0...v0.20.0) (2026-06-25)
 
 
