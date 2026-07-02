@@ -79,55 +79,11 @@ func (s *Scheduler) checkAndEmit() {
 
 	now := time.Now()
 
-	s.checkVolumeJob(event.ActionBackup, cfg.Backup, now)
+	s.checkBackupJob(cfg.Backup)
 	s.checkSnapshotJob(cfg.Snapshot)
 	s.checkDefragJob(cfg.Defrag)
 	s.checkDiskJob(event.ActionScrubCheck, cfg.Scrub, now)
 	s.checkDiskJob(event.ActionBalanceCheck, cfg.Balance, now)
-}
-
-func (s *Scheduler) checkVolumeJob(action event.ActionType, schedule config.VolumeJobSchedule, now time.Time) {
-	if !schedule.Enabled {
-		return
-	}
-
-	minute := now.Minute()
-	timeHHMM := now.Format("15:04")
-	weekday := strings.ToLower(now.Weekday().String())
-	day := now.Day()
-
-	var shouldEmit bool
-	var key string
-
-	if schedule.HourlyMinute == minute {
-		key = fmt.Sprintf("%s:hourly:%d", action, now.Hour())
-		if s.lastRun[key] != now.Format("2006-01-02") {
-			shouldEmit = true
-		}
-	} else if schedule.Time == timeHHMM {
-		if schedule.WeeklyDay != "" && schedule.WeeklyDay == weekday {
-			_, weekNum := now.ISOWeek()
-			key = fmt.Sprintf("%s:weekly:%d", action, weekNum)
-			if s.lastRun[key] != now.Format("2006") {
-				shouldEmit = true
-			}
-		} else if schedule.MonthlyDay > 0 && schedule.MonthlyDay == day {
-			key = fmt.Sprintf("%s:monthly", action)
-			if s.lastRun[key] != now.Format("2006-01") {
-				shouldEmit = true
-			}
-		} else {
-			key = fmt.Sprintf("%s:daily", action)
-			if s.lastRun[key] != now.Format("2006-01-02") {
-				shouldEmit = true
-			}
-		}
-	}
-
-	if shouldEmit {
-		s.lastRun[key] = getTimeKey(now, key)
-		s.eventBus.PublishAsync(action, s.getVolumeRequest(action))
-	}
 }
 
 func (s *Scheduler) checkDiskJob(action event.ActionType, schedule config.DiskJobSchedule, now time.Time) {
@@ -166,6 +122,20 @@ func (s *Scheduler) checkDiskJob(action event.ActionType, schedule config.DiskJo
 	}
 }
 
+func (s *Scheduler) checkBackupJob(schedule config.VolumeJobSchedule) {
+	if !schedule.Enabled {
+		return
+	}
+	s.eventBus.PublishConcurrent(event.ActionBackupCheck, event.BackupCheckRequest{
+		EventBus: s.eventBus,
+		Schedule: event.BackupCheckSchedule{
+			Time:       schedule.Time,
+			WeeklyDay:  schedule.WeeklyDay,
+			MonthlyDay: schedule.MonthlyDay,
+		},
+	})
+}
+
 func (s *Scheduler) checkDefragJob(schedule config.VolumeJobSchedule) {
 	if !schedule.Enabled {
 		return
@@ -194,15 +164,6 @@ func (s *Scheduler) checkSnapshotJob(schedule config.VolumeJobSchedule) {
 			MonthlyDay:   schedule.MonthlyDay,
 		},
 	})
-}
-
-func (s *Scheduler) getVolumeRequest(action event.ActionType) interface{} {
-	switch action {
-	case event.ActionBackup:
-		return event.BackupRequest{}
-	default:
-		return event.BackupRequest{}
-	}
 }
 
 func (s *Scheduler) getDiskRequest(action event.ActionType) interface{} {
