@@ -2,10 +2,16 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/storage"
 	"rosadisk-agent/internal/worker/event"
@@ -139,11 +145,13 @@ func (h *BackupIncrementalHandler) Handle(ctx context.Context, data interface{})
 
 type BackupFullHandler struct {
 	logger *zap.Logger
+	db     *database.Database
 }
 
-func NewBackupFullHandler(logger *zap.Logger) *BackupFullHandler {
+func NewBackupFullHandler(logger *zap.Logger, db *database.Database) *BackupFullHandler {
 	return &BackupFullHandler{
 		logger: logger,
+		db:     db,
 	}
 }
 
@@ -154,11 +162,74 @@ func (h *BackupFullHandler) Handle(ctx context.Context, data interface{}) (inter
 		return nil, errInvalidRequest
 	}
 
-	h.logger.Info("backup full",
+	now := time.Now()
+	nowStr := now.Format("02012006-1504")
+	backupDir := filepath.Join(req.Mountpoint, ".rosadisk", "backups", fmt.Sprintf("%s-%s", req.Name, req.ID))
+	backupFile := fmt.Sprintf("full-%s.enc", nowStr)
+	backupPath := filepath.Join(backupDir, backupFile)
+	snapshotName := fmt.Sprintf("snapshot-full-%s", nowStr)
+	snapshotPath := filepath.Join(backupDir, snapshotName)
+
+	h.logger.Info("creating full backup",
 		zap.String("subvolume_id", req.ID),
-		zap.String("name", req.Name),
-		zap.String("mountpoint", req.Mountpoint),
+		zap.String("snapshot_path", snapshotPath),
+		zap.String("backup_path", backupPath),
 	)
+
+	if err := storage.CreateBackupSnapshot(req.SubvolPath, snapshotPath); err != nil {
+		h.logger.Error("failed to create backup snapshot", zap.Error(err))
+		return nil, err
+	}
+
+	backupID := uuid.New().String()
+	if err := h.db.InsertBackup(database.CreateBackupRecord{
+		ID:           backupID,
+		SubvolumeID:  req.ID,
+		Type:         "full",
+		ParentID:     nil,
+		SnapshotName: snapshotName,
+		Path:         backupPath,
+	}); err != nil {
+		h.logger.Error("failed to insert backup record", zap.Error(err))
+		return nil, err
+	}
+
+	if err := storage.SendBackup(snapshotPath, backupPath, "/var/lib/rosadisk-agent/e2ee_key"); err != nil {
+		h.db.CompleteBackup(backupID, 0, "", "failed", err.Error())
+		h.logger.Error("full backup failed", zap.Error(err))
+		return nil, err
+	}
+
+	fileInfo, _ := os.Stat(backupPath)
+	var fileSize int64
+	if fileInfo != nil {
+		fileSize = fileInfo.Size()
+	}
+
+	cfg, _ := config.GetConfig(h.db)
+	uploadDetails := map[string]string{
+		"type":     cfg.BackupStorage.Type,
+		"filename": backupFile,
+	}
+	if cfg.BackupStorage.Type == "local" {
+		if p, ok := cfg.BackupStorage.Options["path"]; ok {
+			uploadDetails["path"] = filepath.Join(p, fmt.Sprintf("%s-%s", req.Name, req.ID), backupFile)
+		}
+	}
+	if cfg.BackupStorage.Type == "s3" {
+		if ep, ok := cfg.BackupStorage.Options["endpoint"]; ok {
+			uploadDetails["endpoint"] = ep
+		}
+		if b, ok := cfg.BackupStorage.Options["bucket"]; ok {
+			uploadDetails["bucket"] = b
+		}
+		uploadDetails["key"] = fmt.Sprintf("%s-%s/%s", req.Name, req.ID, backupFile)
+	}
+	uploadDetailsJSON, _ := json.Marshal(uploadDetails)
+
+	if err := h.db.CompleteBackup(backupID, fileSize, string(uploadDetailsJSON), "completed", ""); err != nil {
+		h.logger.Error("failed to update backup record", zap.Error(err))
+	}
 
 	req.EventBus.PublishConcurrent(event.ActionBackupUpload, event.BackupUploadRequest{
 		ID:         req.ID,
@@ -175,7 +246,7 @@ func (h *BackupFullHandler) Handle(ctx context.Context, data interface{}) (inter
 		Mountpoint: req.Mountpoint,
 	})
 
-	return map[string]string{"status": "success"}, nil
+	return map[string]string{"status": "success", "backup_id": backupID}, nil
 }
 
 type BackupUploadHandler struct {
