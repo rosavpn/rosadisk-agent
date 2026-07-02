@@ -2,16 +2,10 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"rosadisk-agent/internal/config"
 	"rosadisk-agent/internal/database"
 	"rosadisk-agent/internal/storage"
 	"rosadisk-agent/internal/worker/event"
@@ -104,13 +98,11 @@ func (h *BackupCheckHandler) Handle(ctx context.Context, data interface{}) (inte
 
 type BackupIncrementalHandler struct {
 	logger *zap.Logger
-	db     *database.Database
 }
 
-func NewBackupIncrementalHandler(logger *zap.Logger, db *database.Database) *BackupIncrementalHandler {
+func NewBackupIncrementalHandler(logger *zap.Logger) *BackupIncrementalHandler {
 	return &BackupIncrementalHandler{
 		logger: logger,
-		db:     db,
 	}
 }
 
@@ -121,69 +113,11 @@ func (h *BackupIncrementalHandler) Handle(ctx context.Context, data interface{})
 		return nil, errInvalidRequest
 	}
 
-	h.logger.Info("backup incremental", zap.String("subvolume_id", req.ID))
-
-	snapshots, err := h.db.ListSnapshotsBySubvolume(req.ID)
-	if err != nil || len(snapshots) == 0 {
-		h.logger.Error("no snapshots available for incremental backup", zap.String("subvolume_id", req.ID))
-		return nil, fmt.Errorf("no snapshots available")
-	}
-
-	latestSnapshot := snapshots[0]
-	snapshotPath := latestSnapshot.Path
-
-	parent, err := h.db.GetLatestBackup(req.ID, "full")
-	if err != nil {
-		h.logger.Error("failed to find parent backup", zap.Error(err))
-		return nil, err
-	}
-	if parent == nil {
-		h.logger.Warn("no parent full backup found for incremental, skipping",
-			zap.String("subvolume_id", req.ID),
-		)
-		return map[string]string{"status": "skipped", "reason": "no parent full backup"}, nil
-	}
-
-	parentSnapshotPath := filepath.Join(req.Mountpoint, ".rosadisk", "snapshots",
-		fmt.Sprintf("%s-%s", req.Name, req.ID), parent.SnapshotName)
-
-	backupID := uuid.New().String()
-	timestamp := time.Now().Format("02012006-1504")
-	backupDir := filepath.Join(req.Mountpoint, ".rosadisk", "backups", fmt.Sprintf("%s-%s", req.Name, req.ID))
-	backupFile := fmt.Sprintf("incremental-%s.btrfs", timestamp)
-	backupPath := filepath.Join(backupDir, backupFile)
-
-	if err := h.db.InsertBackup(database.CreateBackupRecord{
-		ID:           backupID,
-		SubvolumeID:  req.ID,
-		Type:         "incremental",
-		ParentID:     &parent.ID,
-		SnapshotName: latestSnapshot.Name,
-		Path:         backupPath,
-	}); err != nil {
-		h.logger.Error("failed to insert backup record", zap.Error(err))
-		return nil, err
-	}
-
-	if err := storage.SendBackupBtrfs(snapshotPath, backupPath, parentSnapshotPath); err != nil {
-		h.db.CompleteBackup(backupID, 0, "", "failed", err.Error())
-		h.logger.Error("incremental backup failed", zap.Error(err))
-		return nil, err
-	}
-
-	fileInfo, _ := os.Stat(backupPath)
-	var fileSize int64
-	if fileInfo != nil {
-		fileSize = fileInfo.Size()
-	}
-
-	cfg, _ := config.GetConfig(h.db)
-	uploadDetails := backupUploadDetails(cfg, req.ID, req.Name, backupFile)
-	uploadDetailsJSON, _ := json.Marshal(uploadDetails)
-
-	if err := h.db.CompleteBackup(backupID, fileSize, string(uploadDetailsJSON), "completed", ""); err != nil {
-		h.logger.Error("failed to update backup record", zap.Error(err))
-	}
+	h.logger.Info("backup incremental",
+		zap.String("subvolume_id", req.ID),
+		zap.String("name", req.Name),
+		zap.String("mountpoint", req.Mountpoint),
+	)
 
 	req.EventBus.PublishConcurrent(event.ActionBackupUpload, event.BackupUploadRequest{
 		ID:         req.ID,
@@ -200,18 +134,16 @@ func (h *BackupIncrementalHandler) Handle(ctx context.Context, data interface{})
 		Mountpoint: req.Mountpoint,
 	})
 
-	return map[string]string{"status": "success", "backup_id": backupID}, nil
+	return map[string]string{"status": "success"}, nil
 }
 
 type BackupFullHandler struct {
 	logger *zap.Logger
-	db     *database.Database
 }
 
-func NewBackupFullHandler(logger *zap.Logger, db *database.Database) *BackupFullHandler {
+func NewBackupFullHandler(logger *zap.Logger) *BackupFullHandler {
 	return &BackupFullHandler{
 		logger: logger,
-		db:     db,
 	}
 }
 
@@ -222,54 +154,11 @@ func (h *BackupFullHandler) Handle(ctx context.Context, data interface{}) (inter
 		return nil, errInvalidRequest
 	}
 
-	h.logger.Info("backup full", zap.String("subvolume_id", req.ID))
-
-	snapshots, err := h.db.ListSnapshotsBySubvolume(req.ID)
-	if err != nil || len(snapshots) == 0 {
-		h.logger.Error("no snapshots available for full backup", zap.String("subvolume_id", req.ID))
-		return nil, fmt.Errorf("no snapshots available")
-	}
-
-	latestSnapshot := snapshots[0]
-	snapshotPath := latestSnapshot.Path
-
-	backupID := uuid.New().String()
-	timestamp := time.Now().Format("02012006-1504")
-	backupDir := filepath.Join(req.Mountpoint, ".rosadisk", "backups", fmt.Sprintf("%s-%s", req.Name, req.ID))
-	backupFile := fmt.Sprintf("full-%s.btrfs", timestamp)
-	backupPath := filepath.Join(backupDir, backupFile)
-
-	if err := h.db.InsertBackup(database.CreateBackupRecord{
-		ID:           backupID,
-		SubvolumeID:  req.ID,
-		Type:         "full",
-		ParentID:     nil,
-		SnapshotName: latestSnapshot.Name,
-		Path:         backupPath,
-	}); err != nil {
-		h.logger.Error("failed to insert backup record", zap.Error(err))
-		return nil, err
-	}
-
-	if err := storage.SendBackupBtrfs(snapshotPath, backupPath, ""); err != nil {
-		h.db.CompleteBackup(backupID, 0, "", "failed", err.Error())
-		h.logger.Error("full backup failed", zap.Error(err))
-		return nil, err
-	}
-
-	fileInfo, _ := os.Stat(backupPath)
-	var fileSize int64
-	if fileInfo != nil {
-		fileSize = fileInfo.Size()
-	}
-
-	cfg, _ := config.GetConfig(h.db)
-	uploadDetails := backupUploadDetails(cfg, req.ID, req.Name, backupFile)
-	uploadDetailsJSON, _ := json.Marshal(uploadDetails)
-
-	if err := h.db.CompleteBackup(backupID, fileSize, string(uploadDetailsJSON), "completed", ""); err != nil {
-		h.logger.Error("failed to update backup record", zap.Error(err))
-	}
+	h.logger.Info("backup full",
+		zap.String("subvolume_id", req.ID),
+		zap.String("name", req.Name),
+		zap.String("mountpoint", req.Mountpoint),
+	)
 
 	req.EventBus.PublishConcurrent(event.ActionBackupUpload, event.BackupUploadRequest{
 		ID:         req.ID,
@@ -286,7 +175,7 @@ func (h *BackupFullHandler) Handle(ctx context.Context, data interface{}) (inter
 		Mountpoint: req.Mountpoint,
 	})
 
-	return map[string]string{"status": "success", "backup_id": backupID}, nil
+	return map[string]string{"status": "success"}, nil
 }
 
 type BackupUploadHandler struct {
@@ -353,26 +242,4 @@ func backupDue(frequency string, schedule event.BackupCheckSchedule, nowHHMM, we
 	default:
 		return false
 	}
-}
-
-func backupUploadDetails(cfg config.GlobalConfig, subvolumeID, subvolumeName, filename string) map[string]string {
-	details := map[string]string{
-		"type":     cfg.BackupStorage.Type,
-		"filename": filename,
-	}
-	if cfg.BackupStorage.Type == "local" {
-		if p, ok := cfg.BackupStorage.Options["path"]; ok {
-			details["path"] = filepath.Join(p, fmt.Sprintf("%s-%s", subvolumeName, subvolumeID), filename)
-		}
-	}
-	if cfg.BackupStorage.Type == "s3" {
-		if ep, ok := cfg.BackupStorage.Options["endpoint"]; ok {
-			details["endpoint"] = ep
-		}
-		if b, ok := cfg.BackupStorage.Options["bucket"]; ok {
-			details["bucket"] = b
-		}
-		details["key"] = fmt.Sprintf("%s-%s/%s", subvolumeName, subvolumeID, filename)
-	}
-	return details
 }
