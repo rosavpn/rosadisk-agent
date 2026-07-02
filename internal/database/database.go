@@ -58,7 +58,7 @@ func runMigrations(db *sql.DB) error {
 			subvolume_id TEXT NOT NULL,
 			type TEXT NOT NULL,
 			parent_id TEXT,
-			snapshot_name TEXT NOT NULL,
+			snapshot_path TEXT NOT NULL,
 			path TEXT NOT NULL,
 			size INTEGER DEFAULT 0,
 			upload_details TEXT,

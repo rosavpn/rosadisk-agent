@@ -187,7 +187,7 @@ func (h *BackupFullHandler) Handle(ctx context.Context, data interface{}) (inter
 		SubvolumeID:  req.ID,
 		Type:         "full",
 		ParentID:     nil,
-		SnapshotName: snapshotName,
+		SnapshotPath: snapshotPath,
 		Path:         backupPath,
 	}); err != nil {
 		h.logger.Error("failed to insert backup record", zap.Error(err))

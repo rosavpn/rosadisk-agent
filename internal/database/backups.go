@@ -11,7 +11,7 @@ type BackupRecord struct {
 	SubvolumeID   string
 	Type          string
 	ParentID      *string
-	SnapshotName  string
+	SnapshotPath  string
 	Path          string
 	Size          int64
 	UploadDetails *string
@@ -26,7 +26,7 @@ type CreateBackupRecord struct {
 	SubvolumeID  string
 	Type         string
 	ParentID     *string
-	SnapshotName string
+	SnapshotPath string
 	Path         string
 }
 
@@ -35,9 +35,9 @@ func (db *Database) InsertBackup(r CreateBackupRecord) error {
 	defer db.mu.Unlock()
 
 	_, err := db.DB.Exec(`
-		INSERT INTO backups (id, subvolume_id, type, parent_id, snapshot_name, path, status)
+		INSERT INTO backups (id, subvolume_id, type, parent_id, snapshot_path, path, status)
 		VALUES (?, ?, ?, ?, ?, ?, 'running')
-	`, r.ID, r.SubvolumeID, r.Type, r.ParentID, r.SnapshotName, r.Path)
+	`, r.ID, r.SubvolumeID, r.Type, r.ParentID, r.SnapshotPath, r.Path)
 	if err != nil {
 		return fmt.Errorf("failed to insert backup: %w", err)
 	}
@@ -65,7 +65,7 @@ func (db *Database) ListBackupsBySubvolume(subvolumeID string) ([]BackupRecord, 
 	defer db.mu.RUnlock()
 
 	rows, err := db.DB.Query(`
-		SELECT id, subvolume_id, type, parent_id, snapshot_name, path, size, upload_details, status, error, created_at, completed_at
+		SELECT id, subvolume_id, type, parent_id, snapshot_path, path, size, upload_details, status, error, created_at, completed_at
 		FROM backups
 		WHERE subvolume_id = ?
 		ORDER BY created_at DESC
@@ -81,7 +81,7 @@ func (db *Database) ListBackupsBySubvolume(subvolumeID string) ([]BackupRecord, 
 		var parentID, uploadDetails, errMsg, completedAt sql.NullString
 		var createdAt string
 
-		err := rows.Scan(&r.ID, &r.SubvolumeID, &r.Type, &parentID, &r.SnapshotName,
+		err := rows.Scan(&r.ID, &r.SubvolumeID, &r.Type, &parentID, &r.SnapshotPath,
 			&r.Path, &r.Size, &uploadDetails, &r.Status, &errMsg, &createdAt, &completedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan backup: %w", err)
@@ -117,12 +117,12 @@ func (db *Database) GetLatestBackup(subvolumeID, backupType string) (*BackupReco
 	var createdAt string
 
 	err := db.DB.QueryRow(`
-		SELECT id, subvolume_id, type, parent_id, snapshot_name, path, size, upload_details, status, error, created_at, completed_at
+		SELECT id, subvolume_id, type, parent_id, snapshot_path, path, size, upload_details, status, error, created_at, completed_at
 		FROM backups
 		WHERE subvolume_id = ? AND type = ? AND status = 'completed'
 		ORDER BY created_at DESC
 		LIMIT 1
-	`, subvolumeID, backupType).Scan(&r.ID, &r.SubvolumeID, &r.Type, &parentID, &r.SnapshotName,
+	`, subvolumeID, backupType).Scan(&r.ID, &r.SubvolumeID, &r.Type, &parentID, &r.SnapshotPath,
 		&r.Path, &r.Size, &uploadDetails, &r.Status, &errMsg, &createdAt, &completedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
