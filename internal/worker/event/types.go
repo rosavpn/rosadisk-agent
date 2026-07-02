@@ -105,7 +105,7 @@ type SubvolumeDeleteRequest struct {
 }
 
 type BackupCheckRequest struct {
-	EventBus AsyncEventPublisher `json:"-"`
+	EventBus Publisher           `json:"-"`
 	Schedule BackupCheckSchedule `json:"-"`
 }
 
@@ -116,21 +116,38 @@ type BackupCheckSchedule struct {
 }
 
 type BackupIncrementalRequest struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	FsUUID     string `json:"fs_uuid"`
-	SubvolPath string `json:"subvol_path"`
-	Mountpoint string `json:"mountpoint"`
-	Frequency  string `json:"frequency"`
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	FsUUID     string    `json:"fs_uuid"`
+	SubvolPath string    `json:"subvol_path"`
+	Mountpoint string    `json:"mountpoint"`
+	Frequency  string    `json:"frequency"`
+	EventBus   Publisher `json:"-"`
 }
 
 type BackupFullRequest struct {
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	FsUUID     string    `json:"fs_uuid"`
+	SubvolPath string    `json:"subvol_path"`
+	Mountpoint string    `json:"mountpoint"`
+	Frequency  string    `json:"frequency"`
+	EventBus   Publisher `json:"-"`
+}
+
+type BackupUploadRequest struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`
-	FsUUID     string `json:"fs_uuid"`
 	SubvolPath string `json:"subvol_path"`
 	Mountpoint string `json:"mountpoint"`
-	Frequency  string `json:"frequency"`
+	BackupType string `json:"backup_type"`
+}
+
+type BackupCleanupRequest struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	SubvolPath string `json:"subvol_path"`
+	Mountpoint string `json:"mountpoint"`
 }
 
 type SnapshotCheckRequest struct {
@@ -228,4 +245,9 @@ type AsyncEventPublisher interface {
 
 type ConcurrentEventPublisher interface {
 	PublishConcurrent(action ActionType, data interface{})
+}
+
+type Publisher interface {
+	AsyncEventPublisher
+	ConcurrentEventPublisher
 }

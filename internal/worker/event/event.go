@@ -17,6 +17,8 @@ const (
 	ActionBackupCheck       ActionType = "background:backup:check"
 	ActionBackupIncremental ActionType = "background:backup:incremental"
 	ActionBackupFull        ActionType = "background:backup:full"
+	ActionBackupUpload      ActionType = "background:backup:upload"
+	ActionBackupCleanup     ActionType = "background:backup:cleanup"
 	ActionSnapshotCheck     ActionType = "background:snapshot:check"
 	ActionDefragCheck       ActionType = "background:defrag:check"
 	ActionDefragSubvolume   ActionType = "background:defrag:subvolume"

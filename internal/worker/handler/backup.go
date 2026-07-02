@@ -69,6 +69,7 @@ func (h *BackupCheckHandler) Handle(ctx context.Context, data interface{}) (inte
 				SubvolPath: sv.Path,
 				Mountpoint: mountpoint,
 				Frequency:  sv.BackupFullFrequency,
+				EventBus:   req.EventBus,
 			})
 			fullCount++
 			continue
@@ -82,6 +83,7 @@ func (h *BackupCheckHandler) Handle(ctx context.Context, data interface{}) (inte
 				SubvolPath: sv.Path,
 				Mountpoint: mountpoint,
 				Frequency:  sv.BackupIncrementalFrequency,
+				EventBus:   req.EventBus,
 			})
 			incCount++
 		}
@@ -117,6 +119,21 @@ func (h *BackupIncrementalHandler) Handle(ctx context.Context, data interface{})
 		zap.String("mountpoint", req.Mountpoint),
 	)
 
+	req.EventBus.PublishConcurrent(event.ActionBackupUpload, event.BackupUploadRequest{
+		ID:         req.ID,
+		Name:       req.Name,
+		SubvolPath: req.SubvolPath,
+		Mountpoint: req.Mountpoint,
+		BackupType: "incremental",
+	})
+
+	req.EventBus.PublishConcurrent(event.ActionBackupCleanup, event.BackupCleanupRequest{
+		ID:         req.ID,
+		Name:       req.Name,
+		SubvolPath: req.SubvolPath,
+		Mountpoint: req.Mountpoint,
+	})
+
 	return map[string]string{"status": "success"}, nil
 }
 
@@ -138,6 +155,74 @@ func (h *BackupFullHandler) Handle(ctx context.Context, data interface{}) (inter
 	}
 
 	h.logger.Info("backup full",
+		zap.String("subvolume_id", req.ID),
+		zap.String("name", req.Name),
+		zap.String("mountpoint", req.Mountpoint),
+	)
+
+	req.EventBus.PublishConcurrent(event.ActionBackupUpload, event.BackupUploadRequest{
+		ID:         req.ID,
+		Name:       req.Name,
+		SubvolPath: req.SubvolPath,
+		Mountpoint: req.Mountpoint,
+		BackupType: "full",
+	})
+
+	req.EventBus.PublishConcurrent(event.ActionBackupCleanup, event.BackupCleanupRequest{
+		ID:         req.ID,
+		Name:       req.Name,
+		SubvolPath: req.SubvolPath,
+		Mountpoint: req.Mountpoint,
+	})
+
+	return map[string]string{"status": "success"}, nil
+}
+
+type BackupUploadHandler struct {
+	logger *zap.Logger
+}
+
+func NewBackupUploadHandler(logger *zap.Logger) *BackupUploadHandler {
+	return &BackupUploadHandler{
+		logger: logger,
+	}
+}
+
+func (h *BackupUploadHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	req, ok := data.(event.BackupUploadRequest)
+	if !ok {
+		h.logger.Error("invalid backup upload request type")
+		return nil, errInvalidRequest
+	}
+
+	h.logger.Info("backup upload",
+		zap.String("subvolume_id", req.ID),
+		zap.String("name", req.Name),
+		zap.String("backup_type", req.BackupType),
+		zap.String("mountpoint", req.Mountpoint),
+	)
+
+	return map[string]string{"status": "success"}, nil
+}
+
+type BackupCleanupHandler struct {
+	logger *zap.Logger
+}
+
+func NewBackupCleanupHandler(logger *zap.Logger) *BackupCleanupHandler {
+	return &BackupCleanupHandler{
+		logger: logger,
+	}
+}
+
+func (h *BackupCleanupHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
+	req, ok := data.(event.BackupCleanupRequest)
+	if !ok {
+		h.logger.Error("invalid backup cleanup request type")
+		return nil, errInvalidRequest
+	}
+
+	h.logger.Info("backup cleanup",
 		zap.String("subvolume_id", req.ID),
 		zap.String("name", req.Name),
 		zap.String("mountpoint", req.Mountpoint),
