@@ -47,11 +47,7 @@ func (h *BackupCheckHandler) Handle(ctx context.Context, data interface{}) (inte
 	incCount := 0
 
 	for _, sv := range subvolumes {
-		if !sv.BackupFullEnabled && !sv.BackupIncrementalEnabled {
-			continue
-		}
-
-		if !sv.BackupFullEnabled && sv.BackupIncrementalEnabled {
+		if !sv.BackupFullEnabled {
 			continue
 		}
 
