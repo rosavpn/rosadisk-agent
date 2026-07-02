@@ -104,7 +104,34 @@ type SubvolumeDeleteRequest struct {
 	ID string
 }
 
-type BackupRequest struct{}
+type BackupCheckRequest struct {
+	EventBus AsyncEventPublisher `json:"-"`
+	Schedule BackupCheckSchedule `json:"-"`
+}
+
+type BackupCheckSchedule struct {
+	Time       string
+	WeeklyDay  string
+	MonthlyDay int
+}
+
+type BackupIncrementalRequest struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	FsUUID     string `json:"fs_uuid"`
+	SubvolPath string `json:"subvol_path"`
+	Mountpoint string `json:"mountpoint"`
+	Frequency  string `json:"frequency"`
+}
+
+type BackupFullRequest struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	FsUUID     string `json:"fs_uuid"`
+	SubvolPath string `json:"subvol_path"`
+	Mountpoint string `json:"mountpoint"`
+	Frequency  string `json:"frequency"`
+}
 
 type SnapshotCheckRequest struct {
 	EventBus ConcurrentEventPublisher `json:"-"`
