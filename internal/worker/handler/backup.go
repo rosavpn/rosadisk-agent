@@ -195,7 +195,9 @@ func (h *BackupFullHandler) Handle(ctx context.Context, data interface{}) (inter
 	}
 
 	if err := storage.SendBackup(snapshotPath, backupPath, "/var/lib/rosadisk-agent/e2ee_key"); err != nil {
-		h.db.CompleteBackup(backupID, 0, "", "failed", err.Error())
+		if completeErr := h.db.CompleteBackup(backupID, 0, "", "failed", err.Error()); completeErr != nil {
+			h.logger.Error("failed to update backup record after failure", zap.Error(completeErr))
+		}
 		h.logger.Error("full backup failed", zap.Error(err))
 		return nil, err
 	}

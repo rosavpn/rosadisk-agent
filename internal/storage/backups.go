@@ -27,6 +27,7 @@ func SendBackup(snapshotPath, destPath, keyFile string) error {
 		return fmt.Errorf("failed to create backup directory: %w", err)
 	}
 
+	// #nosec G304 -- destPath is from trusted subvolume/mountpoint path
 	outFile, err := os.Create(destPath)
 	if err != nil {
 		return fmt.Errorf("failed to create backup file: %w", err)
@@ -36,6 +37,7 @@ func SendBackup(snapshotPath, destPath, keyFile string) error {
 	// #nosec G204 -- paths are from trusted sources
 	sendCmd := exec.Command("btrfs", "send", snapshotPath)
 	gzipCmd := exec.Command("gzip")
+	// #nosec G204 -- keyFile path is fixed /var/lib/rosadisk-agent/e2ee_key
 	opensslCmd := exec.Command("openssl", "enc", "-aes-256-cbc", "-salt", "-pbkdf2",
 		"-pass", fmt.Sprintf("file:%s", keyFile))
 
