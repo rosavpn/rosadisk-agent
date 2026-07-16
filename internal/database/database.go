@@ -53,6 +53,20 @@ func runMigrations(db *sql.DB) error {
 			size INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS backups (
+			id TEXT PRIMARY KEY,
+			subvolume_id TEXT NOT NULL,
+			type TEXT NOT NULL,
+			parent_id TEXT,
+			snapshot_path TEXT NOT NULL,
+			path TEXT NOT NULL,
+			size INTEGER DEFAULT 0,
+			upload_details TEXT,
+			status TEXT NOT NULL,
+			error TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			completed_at DATETIME
+		)`,
 	}
 
 	for i, migration := range migrations {

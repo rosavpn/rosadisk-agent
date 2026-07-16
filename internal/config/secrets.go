@@ -58,6 +58,14 @@ func WriteS3SecretKey(key string) error {
 	return writeSecret("aws_secret_key", key)
 }
 
+func ReadS3AccessKey() (string, error) {
+	return readSecret("aws_access_key")
+}
+
+func ReadS3SecretKey() (string, error) {
+	return readSecret("aws_secret_key")
+}
+
 func HasE2EEKey() bool {
 	return hasSecret("e2ee_key")
 }

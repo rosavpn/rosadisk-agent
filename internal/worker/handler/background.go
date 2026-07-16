@@ -11,21 +11,6 @@ import (
 
 var errInvalidRequest = errors.New("invalid request type")
 
-type BackupHandler struct {
-	logger *zap.Logger
-}
-
-func NewBackupHandler(logger *zap.Logger) *BackupHandler {
-	return &BackupHandler{
-		logger: logger,
-	}
-}
-
-func (h *BackupHandler) Handle(ctx context.Context, data interface{}) (interface{}, error) {
-	h.logger.Info("handling backup event")
-	return map[string]string{"status": "backup completed (dummy)"}, nil
-}
-
 type ScrubCheckHandler struct {
 	logger *zap.Logger
 }

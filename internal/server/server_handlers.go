@@ -496,3 +496,29 @@ func (s *Server) ListSubvolumeSnapshots(ctx echo.Context, id openapi_types.UUID)
 
 	return ctx.JSON(http.StatusOK, snapshots)
 }
+
+func (s *Server) ListSubvolumeBackups(ctx echo.Context, id openapi_types.UUID) error {
+	s.logger.Debug("received list subvolume backups request", zap.String("id", id.String()))
+
+	eventReq := event.BackupListRequest{
+		SubvolumeID: id.String(),
+	}
+
+	result := s.emitEvent(event.ActionBackupList, eventReq)
+
+	if result.Error != nil {
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: result.Error.Error(),
+		})
+	}
+
+	backups, ok := result.Data.([]event.BackupListResponse)
+	if !ok {
+		s.logger.Error("unexpected response type from backup list handler")
+		return ctx.JSON(http.StatusInternalServerError, gen.ErrorResponse{
+			Error: "internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, backups)
+}

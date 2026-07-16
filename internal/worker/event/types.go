@@ -104,7 +104,71 @@ type SubvolumeDeleteRequest struct {
 	ID string
 }
 
-type BackupRequest struct{}
+type BackupCheckRequest struct {
+	EventBus Publisher           `json:"-"`
+	Schedule BackupCheckSchedule `json:"-"`
+}
+
+type BackupCheckSchedule struct {
+	Time       string
+	WeeklyDay  string
+	MonthlyDay int
+}
+
+type BackupIncrementalRequest struct {
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	FsUUID     string    `json:"fs_uuid"`
+	SubvolPath string    `json:"subvol_path"`
+	Mountpoint string    `json:"mountpoint"`
+	Frequency  string    `json:"frequency"`
+	EventBus   Publisher `json:"-"`
+}
+
+type BackupFullRequest struct {
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	FsUUID     string    `json:"fs_uuid"`
+	SubvolPath string    `json:"subvol_path"`
+	Mountpoint string    `json:"mountpoint"`
+	Frequency  string    `json:"frequency"`
+	EventBus   Publisher `json:"-"`
+}
+
+type BackupUploadRequest struct {
+	ID         string `json:"id"`
+	BackupID   string `json:"backup_id"`
+	Name       string `json:"name"`
+	FilePath   string `json:"file_path"`
+	Mountpoint string `json:"mountpoint"`
+	BackupType string `json:"backup_type"`
+}
+
+type BackupCleanupRequest struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	SubvolPath string `json:"subvol_path"`
+	Mountpoint string `json:"mountpoint"`
+}
+
+type BackupListRequest struct {
+	SubvolumeID string `json:"subvolume_id"`
+}
+
+type BackupListResponse struct {
+	ID            string  `json:"id"`
+	SubvolumeID   string  `json:"subvolume_id"`
+	Type          string  `json:"type"`
+	ParentID      *string `json:"parent_id"`
+	SnapshotPath  string  `json:"snapshot_path"`
+	Path          string  `json:"path"`
+	Size          int64   `json:"size"`
+	UploadDetails *string `json:"upload_details"`
+	Status        string  `json:"status"`
+	Error         *string `json:"error"`
+	CreatedAt     string  `json:"created_at"`
+	CompletedAt   *string `json:"completed_at"`
+}
 
 type SnapshotCheckRequest struct {
 	EventBus ConcurrentEventPublisher `json:"-"`
@@ -201,4 +265,9 @@ type AsyncEventPublisher interface {
 
 type ConcurrentEventPublisher interface {
 	PublishConcurrent(action ActionType, data interface{})
+}
+
+type Publisher interface {
+	AsyncEventPublisher
+	ConcurrentEventPublisher
 }
