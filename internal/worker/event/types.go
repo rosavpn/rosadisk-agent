@@ -151,6 +151,25 @@ type BackupCleanupRequest struct {
 	Mountpoint string `json:"mountpoint"`
 }
 
+type BackupListRequest struct {
+	SubvolumeID string `json:"subvolume_id"`
+}
+
+type BackupListResponse struct {
+	ID            string  `json:"id"`
+	SubvolumeID   string  `json:"subvolume_id"`
+	Type          string  `json:"type"`
+	ParentID      *string `json:"parent_id"`
+	SnapshotPath  string  `json:"snapshot_path"`
+	Path          string  `json:"path"`
+	Size          int64   `json:"size"`
+	UploadDetails *string `json:"upload_details"`
+	Status        string  `json:"status"`
+	Error         *string `json:"error"`
+	CreatedAt     string  `json:"created_at"`
+	CompletedAt   *string `json:"completed_at"`
+}
+
 type SnapshotCheckRequest struct {
 	EventBus ConcurrentEventPublisher `json:"-"`
 	Snapshot SnapshotSchedule         `json:"-"`

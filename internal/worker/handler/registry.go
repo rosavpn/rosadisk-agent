@@ -35,6 +35,7 @@ func RegisterAll(logger *zap.Logger, db *database.Database) map[event.ActionType
 	handlers[event.ActionBackupFull] = NewBackupFullHandler(logger, db)
 	handlers[event.ActionBackupUpload] = NewBackupUploadHandler(logger, db)
 	handlers[event.ActionBackupCleanup] = NewBackupCleanupHandler(logger, db)
+	handlers[event.ActionBackupList] = NewBackupListHandler(logger, db)
 	handlers[event.ActionSnapshotCheck] = NewSnapshotCheckHandler(logger, db)
 	handlers[event.ActionDefragCheck] = NewDefragCheckHandler(logger, db)
 	handlers[event.ActionDefragSubvolume] = NewDefragSubvolumeHandler(logger, db)
