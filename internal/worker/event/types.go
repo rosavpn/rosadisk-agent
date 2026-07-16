@@ -137,8 +137,9 @@ type BackupFullRequest struct {
 
 type BackupUploadRequest struct {
 	ID         string `json:"id"`
+	BackupID   string `json:"backup_id"`
 	Name       string `json:"name"`
-	SubvolPath string `json:"subvol_path"`
+	FilePath   string `json:"file_path"`
 	Mountpoint string `json:"mountpoint"`
 	BackupType string `json:"backup_type"`
 }
