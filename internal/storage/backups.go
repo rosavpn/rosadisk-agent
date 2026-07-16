@@ -22,7 +22,7 @@ func CreateBackupSnapshot(source, dest string) error {
 	return nil
 }
 
-func SendBackup(snapshotPath, destPath, keyFile string) error {
+func SendBackup(snapshotPath, destPath, keyFile, parentSnapshotPath string) error {
 	if err := os.MkdirAll(filepath.Dir(destPath), 0750); err != nil {
 		return fmt.Errorf("failed to create backup directory: %w", err)
 	}
@@ -35,7 +35,12 @@ func SendBackup(snapshotPath, destPath, keyFile string) error {
 	defer func() { _ = outFile.Close() }()
 
 	// #nosec G204 -- paths are from trusted sources
-	sendCmd := exec.Command("btrfs", "send", snapshotPath)
+	sendArgs := []string{"send"}
+	if parentSnapshotPath != "" {
+		sendArgs = append(sendArgs, "-p", parentSnapshotPath)
+	}
+	sendArgs = append(sendArgs, snapshotPath)
+	sendCmd := exec.Command("btrfs", sendArgs...)
 	gzipCmd := exec.Command("gzip")
 	// #nosec G204 -- keyFile path is fixed /var/lib/rosadisk-agent/e2ee_key
 	opensslCmd := exec.Command("openssl", "enc", "-aes-256-cbc", "-salt", "-pbkdf2",

@@ -108,7 +108,7 @@ func (db *Database) ListBackupsBySubvolume(subvolumeID string) ([]BackupRecord, 
 	return records, nil
 }
 
-func (db *Database) GetLatestBackup(subvolumeID, backupType string) (*BackupRecord, error) {
+func (db *Database) GetLatestBackup(subvolumeID string) (*BackupRecord, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -119,10 +119,10 @@ func (db *Database) GetLatestBackup(subvolumeID, backupType string) (*BackupReco
 	err := db.DB.QueryRow(`
 		SELECT id, subvolume_id, type, parent_id, snapshot_path, path, size, upload_details, status, error, created_at, completed_at
 		FROM backups
-		WHERE subvolume_id = ? AND type = ? AND status = 'completed'
+		WHERE subvolume_id = ? AND status = 'completed'
 		ORDER BY created_at DESC
 		LIMIT 1
-	`, subvolumeID, backupType).Scan(&r.ID, &r.SubvolumeID, &r.Type, &parentID, &r.SnapshotPath,
+	`, subvolumeID).Scan(&r.ID, &r.SubvolumeID, &r.Type, &parentID, &r.SnapshotPath,
 		&r.Path, &r.Size, &uploadDetails, &r.Status, &errMsg, &createdAt, &completedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {

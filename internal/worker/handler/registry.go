@@ -31,7 +31,7 @@ func RegisterAll(logger *zap.Logger, db *database.Database) map[event.ActionType
 	handlers[event.ActionSubvolumeGet] = NewSubvolumeGetHandler(logger, db)
 	handlers[event.ActionSubvolumeDelete] = NewSubvolumeDeleteHandler(logger, db)
 	handlers[event.ActionBackupCheck] = NewBackupCheckHandler(logger, db)
-	handlers[event.ActionBackupIncremental] = NewBackupIncrementalHandler(logger)
+	handlers[event.ActionBackupIncremental] = NewBackupIncrementalHandler(logger, db)
 	handlers[event.ActionBackupFull] = NewBackupFullHandler(logger, db)
 	handlers[event.ActionBackupUpload] = NewBackupUploadHandler(logger)
 	handlers[event.ActionBackupCleanup] = NewBackupCleanupHandler(logger)
