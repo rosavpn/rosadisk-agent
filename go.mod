@@ -3,6 +3,7 @@ module rosadisk-agent
 go 1.25.0
 
 require (
+	github.com/aws/aws-sdk-go v1.55.8
 	github.com/getkin/kin-openapi v0.139.0
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.15.2
@@ -14,7 +15,6 @@ require (
 
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
